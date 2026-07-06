@@ -1,0 +1,21 @@
+import type { TranslationKey } from "./en";
+export const ar: Record<TranslationKey, string> = {
+  brand: "نورة كاشير", tagline: "إدارة المطعم ببساطة", signIn: "تسجيل الدخول", email: "البريد الإلكتروني",
+  password: "كلمة المرور", welcomeBack: "أهلاً بعودتك", loginHint: "أدخل بيانات حسابك للمتابعة.", demoAccounts: "حسابات تجريبية",
+  admin: "مدير النظام", cashier: "موظف الكاشير", dashboard: "لوحة التحكم", reports: "تقارير المبيعات", products: "المنتجات",
+  categories: "التصنيفات", discounts: "العروض والخصومات", employees: "الموظفون", invoices: "الفواتير", settings: "الإعدادات",
+  pos: "فتح الكاشير", mySales: "مبيعاتي", logout: "تسجيل الخروج", todayIncome: "دخل اليوم", weekIncome: "هذا الأسبوع",
+  monthIncome: "هذا الشهر", totalInvoices: "إجمالي الفواتير", vsYesterday: "مقارنة بالأمس", topProducts: "المنتجات الأكثر مبيعاً",
+  salesCategory: "المبيعات حسب التصنيف", recentInvoices: "أحدث الفواتير", salesOverview: "نظرة عامة على المبيعات", viewAll: "عرض الكل",
+  search: "بحث", allCategories: "كل التصنيفات", allBranches: "كل الفروع", addProduct: "إضافة منتج", addCategory: "إضافة تصنيف",
+  addDiscount: "إنشاء حملة", addEmployee: "إضافة موظف", active: "نشط", inactive: "غير نشط", price: "السعر", category: "التصنيف",
+  status: "الحالة", actions: "الإجراءات", name: "الاسم", items: "عناصر", order: "الطلب", subtotal: "المجموع الفرعي",
+  discount: "الخصم", total: "الإجمالي", checkout: "إتمام الدفع النقدي", emptyCart: "السلة فارغة", emptyCartHint: "اضغط على منتج لبدء الطلب.",
+  customize: "تخصيص", size: "اختر الحجم", addons: "إضافات", addToOrder: "إضافة للطلب", cashOnly: "نقداً فقط", newOrder: "طلب جديد",
+  cart: "عرض الطلب", language: "English", branch: "الفرع", date: "التاريخ", employee: "الموظف", amount: "المبلغ", invoice: "الفاتورة",
+  print: "طباعة الفاتورة", backToPos: "العودة للكاشير", receipt: "فاتورة مبيعات", thanks: "شكراً لزيارتكم!", filter: "تصفية",
+  export: "تصدير", save: "حفظ التغييرات", edit: "تعديل", delete: "حذف", productPerformance: "أداء المنتجات", grossSales: "إجمالي المبيعات",
+  completed: "مكتملة", payment: "الدفع", quickAction: "إجراءات سريعة", manageCatalog: "إدارة القائمة", createOffer: "إنشاء عرض",
+  inviteCashier: "إضافة كاشير", operatingNow: "يعمل الآن", mainBranch: "الفرع الرئيسي", table: "جدول", cards: "بطاقات", noResults: "لا توجد نتائج",
+};
+

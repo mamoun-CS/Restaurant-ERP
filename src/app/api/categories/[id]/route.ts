@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";import { cookies } from "next/headers";import { z } from "zod";import { verifyToken } from "@/lib/auth";import { db } from "@/lib/db";
+const schema=z.object({nameEn:z.string().min(2).optional(),nameAr:z.string().min(2).optional(),sortOrder:z.number().int().optional(),active:z.boolean().optional()});async function admin(){const u=await verifyToken((await cookies()).get("erp_session")?.value);return u?.role==="ADMIN"?u:null}
+export async function PATCH(request:Request,{params}:{params:Promise<{id:string}>}){const u=await admin();if(!u)return NextResponse.json({error:"Forbidden"},{status:403});const body=schema.safeParse(await request.json().catch(()=>null));if(!body.success)return NextResponse.json({error:"Invalid category"},{status:400});const {id}=await params;return NextResponse.json(await db.category.update({where:{id},data:body.data}))}
+export async function DELETE(_:Request,{params}:{params:Promise<{id:string}>}){if(!await admin())return NextResponse.json({error:"Forbidden"},{status:403});const {id}=await params;await db.category.delete({where:{id}});return new NextResponse(null,{status:204})}
+
