@@ -77,6 +77,16 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 @media(max-width:800px){.responsive-records{grid-template-columns:1fr 1fr}.payroll-table{display:none}.payroll-cards{display:grid;gap:12px}.payroll-cards dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.payroll-cards dt{font-size:11px;color:var(--muted)}.payroll-cards dd{font-size:13px;font-weight:700;margin-top:3px}}
 @media(max-width:640px){.pnl-filters{grid-template-columns:minmax(0,1fr)}.finance-actions,.finance-kpis,.responsive-records{grid-template-columns:1fr}.finance-quick{min-height:58px}.finance-kpi{min-height:120px}.finance-kpi strong{font-size:23px}.transaction-table{display:none!important}.transaction-cards{display:block!important}.report-list article{align-items:flex-start;flex-wrap:wrap}.report-list article a{margin-inline-start:0;width:100%;justify-content:center}.mobile-primary-actions>*{flex:1;min-width:150px}.payroll-cards dl{grid-template-columns:1fr 1fr}}
 
+.modal-animate { animation: modal-in 0.2s ease-out; }
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
 @media print {
   body { background: white; }
   .no-print { display: none !important; }

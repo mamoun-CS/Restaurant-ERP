@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CirclePercent, Edit3, MoreHorizontal, Plus, Store, Trash2, UserRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +33,8 @@ function ProductsManagementPage(){
   const [page,setPage]=useState(1);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
+  const [deleteTarget,setDeleteTarget]=useState<ProductRow|null>(null);
+  const [deleting,setDeleting]=useState(false);
   const copy=locale==="ar"?{
     description:"إدارة المنتجات والأسعار والتصنيفات",
     sku:"رمز المنتج",loading:"جارٍ تحميل المنتجات…",empty:"لا توجد منتجات.",loadError:"تعذر تحميل المنتجات.",
@@ -66,11 +69,15 @@ function ProductsManagementPage(){
     if(!response.ok){setError(copy.updateError);return;}
     setProducts(old=>old.map(item=>item.id===product.id?{...item,active:!item.active}:item));
   }
-  async function deleteProduct(product:ProductRow){
-    if(!window.confirm(copy.deleteConfirm))return;
-    const response=await fetch(`/api/products/${product.id}`,{method:"DELETE"});
-    if(!response.ok){setError(copy.deleteError);return;}
-    setProducts(old=>old.filter(item=>item.id!==product.id));
+  function deleteProduct(product:ProductRow){setDeleteTarget(product)}
+  async function confirmDelete(){
+    if(!deleteTarget||deleting)return;
+    const target=deleteTarget;setDeleteTarget(null);setDeleting(true);
+    try{
+      const response=await fetch(`/api/products/${target.id}`,{method:"DELETE"});
+      if(!response.ok){setError(copy.deleteError);}
+      else setProducts(old=>old.filter(item=>item.id!==target.id));
+    }finally{setDeleting(false);}
   }
   return <AppShell title={t("products")} description={copy.description} action={<button onClick={()=>setCreating(true)} className="btn-primary flex items-center gap-2"><Plus size={17}/><span className="hidden sm:inline">{t("addProduct")}</span></button>}>
     <PageToolbar search={search} setSearch={value=>{setSearch(value);setPage(1)}}><select className="input !w-auto"><option>{t("allCategories")}</option>{categoryOptions.map(category=><option key={category.id}>{locale==="ar"?category.nameAr:category.nameEn}</option>)}</select></PageToolbar>
@@ -82,6 +89,15 @@ function ProductsManagementPage(){
     </tbody></table></div></div>
     <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={8} onPageChange={setPage}/>
     {(editing||creating)&&<ProductModal product={editing} categories={categoryOptions} close={()=>{setEditing(null);setCreating(false);}} saved={()=>{setEditing(null);setCreating(false);void loadProducts();}}/>}
+    <ConfirmDialog
+      open={deleteTarget!==null}
+      title={locale==="ar"?"حذف المنتج":"Delete product"}
+      description={locale==="ar"?"هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.":"Are you sure you want to delete this item? This action cannot be undone."}
+      itemName={deleteTarget?`${locale==="ar"?deleteTarget.nameAr:deleteTarget.nameEn} (${deleteTarget.sku})`:undefined}
+      loading={deleting}
+      onConfirm={()=>void confirmDelete()}
+      onClose={()=>{setDeleteTarget(null);setDeleting(false);}}
+    />
   </AppShell>;
 }
 function ProductActions({edit,remove,labels}:{edit:()=>void;remove:()=>void;labels:{edit:string;remove:string;more:string}}){const [open,setOpen]=useState(false);return <td className="p-4"><div className="flex justify-end gap-1 relative"><button type="button" onClick={edit} aria-label={labels.edit} className="size-9 rounded-lg hover:bg-primary-soft text-muted hover:text-primary grid place-items-center"><Edit3 size={16}/></button><button type="button" onClick={remove} aria-label={labels.remove} className="size-9 rounded-lg hover:bg-danger/10 text-muted hover:text-danger grid place-items-center"><Trash2 size={16}/></button><button type="button" onClick={()=>setOpen(value=>!value)} aria-label={labels.more} aria-expanded={open} className="size-9 grid place-items-center text-muted"><MoreHorizontal size={18}/></button>{open&&<div className="absolute end-0 top-10 z-10 min-w-32 rounded-xl border border-border bg-surface p-1 shadow-xl"><button type="button" onClick={()=>{setOpen(false);edit()}} className="w-full px-3 py-2 rounded-lg text-start text-sm hover:bg-background flex items-center gap-2"><Edit3 size={14}/>{labels.edit}</button><button type="button" onClick={()=>{setOpen(false);remove()}} className="w-full px-3 py-2 rounded-lg text-start text-sm text-danger hover:bg-danger/10 flex items-center gap-2"><Trash2 size={14}/>{labels.remove}</button></div>}</div></td>}

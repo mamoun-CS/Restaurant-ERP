@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Edit3, MoreHorizontal, Plus, Store, Trash2, UserRound, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
@@ -20,10 +21,12 @@ export function ResourceManagementPage({kind}:{kind:ResourceKind}){
   const [rows,setRows]=useState<Resource[]>([]);
   const [search,setSearchState]=useState("");
   const [page,setPage]=useState(1);
+  const [creating,setCreating]=useState(false);
+  const [editing,setEditing]=useState<Resource|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
-  const [editing,setEditing]=useState<Resource|null>(null);
-  const [creating,setCreating]=useState(false);
+  const [deleteTarget,setDeleteTarget]=useState<Resource|null>(null);
+  const [deleting,setDeleting]=useState(false);
   const copy=locale==="ar"?{
     descriptions:{categories:"إدارة تصنيفات قائمة الطعام",discounts:"إدارة العروض والحملات",employees:"إدارة الموظفين وحساباتهم"},
     load:"جارٍ تحميل البيانات…",empty:"لا توجد نتائج.",loadError:"تعذر تحميل البيانات.",saveError:"تعذر حفظ التغييرات.",deleteError:"تعذر حذف السجل.",confirm:"هل تريد حذف هذا السجل؟",
@@ -45,12 +48,16 @@ export function ResourceManagementPage({kind}:{kind:ResourceKind}){
   const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
   const visible=filtered.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
   const setSearch=(value:string)=>{setSearchState(value);setPage(1)};
-  async function remove(row:Resource){
-    if(!window.confirm(copy.confirm))return;
-    const response=await fetch(`/api/${kind}/${row.id}`,{method:"DELETE"});
-    if(!response.ok){setError(copy.deleteError);return;}
-    if(kind==="employees")setRows(old=>old.map(item=>item.id===row.id?{...item,active:false}:item));
-    else setRows(old=>old.filter(item=>item.id!==row.id));
+  async function remove(row:Resource){setDeleteTarget(row)}
+  async function confirmRemove(){
+    if(!deleteTarget||deleting)return;
+    const target=deleteTarget;setDeleteTarget(null);setDeleting(true);
+    try{
+      const response=await fetch(`/api/${kind}/${target.id}`,{method:"DELETE"});
+      if(!response.ok){setError(copy.deleteError);}
+      else if(kind==="employees")setRows(old=>old.map(item=>item.id===target.id?{...item,active:false}:item));
+      else setRows(old=>old.filter(item=>item.id!==target.id));
+    }finally{setDeleting(false);}
   }
   async function toggle(row:Resource){
     const response=await fetch(`/api/${kind}/${row.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({active:!row.active})});
@@ -70,6 +77,15 @@ export function ResourceManagementPage({kind}:{kind:ResourceKind}){
     </tbody></table></div></div>
     <Pagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} onPageChange={setPage}/>
     {(editing||creating)&&<ResourceModal kind={kind} row={editing} branches={branches} close={()=>{setEditing(null);setCreating(false)}} saved={()=>{setEditing(null);setCreating(false);void load()}}/>}
+    <ConfirmDialog
+      open={deleteTarget!==null}
+      title={locale==="ar"?"حذف السجل":"Delete record"}
+      description={locale==="ar"?"هل أنت متأكد من حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.":"Are you sure you want to delete this item? This action cannot be undone."}
+      itemName={deleteTarget?"name" in deleteTarget ? deleteTarget.name : `${locale==="ar"?deleteTarget.nameAr:deleteTarget.nameEn}`:""}
+      loading={deleting}
+      onConfirm={()=>void confirmRemove()}
+      onClose={()=>{setDeleteTarget(null);setDeleting(false);}}
+    />
   </AppShell>;
 }
 

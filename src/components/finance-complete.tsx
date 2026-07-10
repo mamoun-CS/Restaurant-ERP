@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useLanguage } from "@/components/language-provider";
 import { money } from "@/components/finance-page";
 
@@ -113,6 +114,7 @@ export function CompletePayroll() {
     fetch(`/api/finance/payroll?month=${month}`)
       .then((r) => r.json())
       .then(setRows);
+  const [pendingPay, setPendingPay] = useState(false);
   useEffect(() => {
     load();
     fetch("/api/employees")
@@ -140,7 +142,7 @@ export function CompletePayroll() {
     [editing],
   );
   async function bulk(action: string) {
-    if (action === "pay" && !confirm(c.confirm)) return;
+    if (action === "pay") { setPendingPay(true); return; }
     setBusy(true);
     await fetch("/api/finance/payroll/bulk", {
       method: "POST",
@@ -149,6 +151,19 @@ export function CompletePayroll() {
     });
     setBusy(false);
     load();
+  }
+  async function confirmPay() {
+    if (pendingPay) {
+      setPendingPay(false);
+      setBusy(true);
+      await fetch("/api/finance/payroll/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pay", month }),
+      });
+      setBusy(false);
+      load();
+    }
   }
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -435,6 +450,16 @@ export function CompletePayroll() {
           </form>
         </Dialog>
       )}
+      <ConfirmDialog
+        open={pendingPay}
+        title={locale==="ar"?"تأكيد الدفع":"Confirm payment"}
+        description={locale==="ar"
+          ? "هل تريد تحديد كل الرواتب كمدفوعة؟ سيتم إنشاء مصروف الرواتب تلقائياً."
+          : "Mark every salary as paid? This will create salary expenses automatically."}
+        loading={busy}
+        onConfirm={()=>void confirmPay()}
+        onClose={()=>setPendingPay(false)}
+      />
     </AppShell>
   );
 }
@@ -730,15 +755,15 @@ export function FinanceReports() {
               <h2 className="font-bold">{r.title}</h2>
               <p className="text-muted text-sm mt-1">{r.desc}</p>
             </div>
-            <a
-              href={r.href}
-              className="btn-secondary ms-auto flex items-center gap-2"
-            >
-              <Download size={17} />
-              {ar ? "تنزيل" : "Download"}
-            </a>
-          </article>
-        ))}
+          <a
+            href={r.href}
+            className="btn-secondary ms-auto flex items-center gap-2"
+          >
+            <Download size={17} />
+            {ar ? "تنزيل" : "Download"}
+          </a>
+        </article>
+      ))}
       </div>
     </AppShell>
   );

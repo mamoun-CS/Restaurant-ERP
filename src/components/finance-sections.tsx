@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useLanguage } from "@/components/language-provider";
 import { money } from "@/components/finance-page";
 
@@ -306,6 +307,7 @@ export function PayrollPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)),
     [rows, setRows] = useState<any[]>([]),
     [busy, setBusy] = useState(false);
+  const [pendingPay, setPendingPay] = useState(false);
   const load = () =>
     fetch(`/api/finance/payroll?month=${month}`)
       .then((r) => (r.ok ? r.json() : []))
@@ -314,7 +316,7 @@ export function PayrollPage() {
     load();
   }, [month]);
   async function act(action: string) {
-    if (action === "pay" && !confirm(c.confirmPaid)) return;
+    if (action === "pay") { setPendingPay(true); return; }
     setBusy(true);
     await fetch("/api/finance/payroll/bulk", {
       method: "POST",
@@ -323,6 +325,19 @@ export function PayrollPage() {
     });
     setBusy(false);
     load();
+  }
+  async function confirmPay() {
+    if (pendingPay) {
+      setPendingPay(false);
+      setBusy(true);
+      await fetch("/api/finance/payroll/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pay", month }),
+      });
+      setBusy(false);
+      load();
+    }
   }
   return (
     <AppShell
@@ -441,6 +456,16 @@ export function PayrollPage() {
           <Empty icon={UsersRound} text={c.emptyPayroll} />
         )}
       </section>
+      <ConfirmDialog
+        open={pendingPay}
+        title={locale === "ar" ? "تأكيد الدفع" : "Confirm payment"}
+        description={locale === "ar"
+          ? "هل تريد تحديد كل الرواتب كمدفوعة؟ سيتم إنشاء مصروف الرواتب تلقائياً."
+          : "Mark every salary as paid? This will create salary expenses automatically."}
+        loading={busy}
+        onConfirm={()=>void confirmPay()}
+        onClose={()=>setPendingPay(false)}
+      />
     </AppShell>
   );
 }
