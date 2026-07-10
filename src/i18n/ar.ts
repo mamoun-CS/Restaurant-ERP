@@ -1,6 +1,6 @@
 import type { TranslationKey } from "./en";
 export const ar: Record<TranslationKey, string> = {
-  brand: "نورة كاشير", tagline: "إدارة المطعم ببساطة", signIn: "تسجيل الدخول", email: "البريد الإلكتروني",
+  brand: "شيخ الكار", tagline: "إدارة مطعم أصيلة واحترافية", signIn: "تسجيل الدخول", email: "البريد الإلكتروني",
   password: "كلمة المرور", welcomeBack: "أهلاً بعودتك", loginHint: "أدخل بيانات حسابك للمتابعة.", demoAccounts: "حسابات تجريبية",
   admin: "مدير النظام", cashier: "موظف الكاشير", dashboard: "لوحة التحكم", reports: "تقارير المبيعات", products: "المنتجات",
   categories: "التصنيفات", discounts: "العروض والخصومات", employees: "الموظفون", invoices: "الفواتير", settings: "الإعدادات",
@@ -17,5 +17,8 @@ export const ar: Record<TranslationKey, string> = {
   export: "تصدير", save: "حفظ التغييرات", edit: "تعديل", delete: "حذف", productPerformance: "أداء المنتجات", grossSales: "إجمالي المبيعات",
   completed: "مكتملة", payment: "الدفع", quickAction: "إجراءات سريعة", manageCatalog: "إدارة القائمة", createOffer: "إنشاء عرض",
   inviteCashier: "إضافة كاشير", operatingNow: "يعمل الآن", mainBranch: "الفرع الرئيسي", table: "جدول", cards: "بطاقات", noResults: "لا توجد نتائج",
+  finance: "الإدارة المالية", totalRevenue: "إجمالي الإيرادات", grossProfit: "إجمالي الربح", totalExpenses: "إجمالي المصروفات",
+  netProfit: "صافي الربح", financialPerformance: "الأداء المالي", bestSellingProducts: "المنتجات الأكثر مبيعاً",
+  productCosts: "تكاليف المنتجات", expenses: "المصروفات", profitByCategory: "الربح حسب التصنيف", profitByEmployee: "الربح حسب الموظف",
+  ingredientCosting: "تكلفة المكونات", expenseManagement: "إدارة المصروفات", recipeBuilder: "بناء الوصفة", ingredient: "المكون", quantity: "الكمية",
 };
-

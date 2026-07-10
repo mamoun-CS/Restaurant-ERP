@@ -1,0 +1,18 @@
+<svg width="900" height="1120" viewBox="0 0 900 1120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">شيخ الكار Restaurant full logo</title>
+  <desc id="desc">Modern premium full logo for Sheikh Al Kar restaurant.</desc>
+  <rect width="900" height="1120" rx="150" fill="#F86800"/>
+  <path d="M250 130h400c39 0 70 31 70 70v215c0 55-45 100-100 100h-7c-48 0-86-38-86-86V281H373v148c0 48-38 86-86 86h-7c-55 0-100-45-100-100V200c0-39 31-70 70-70Z" fill="#FFFFFF"/>
+  <path d="M385 205h198l-35 144c-9 36 4 74 31 99l22 20H387c48-51 70-111 66-178l-68-85Z" fill="#F86800"/>
+  <path d="M375 195h231l-20 77H397l-22-77Z" fill="#FF8A1F"/>
+  <path d="M401 226h58l-31 19-27-19Zm90 0h58l-31 19-27-19Zm90 0h35l-18 19-17-19Z" fill="#FFFFFF"/>
+  <path d="M408 286h87c5 41 0 89-15 139" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M529 287c10 55 10 112 0 169M573 287c9 56 9 113 0 169M615 287c7 54 7 109 0 164" stroke="#FFFFFF" stroke-width="17" stroke-linecap="round"/>
+  <path d="M403 287c0 59-13 103-48 141-17 18-10 45 16 52l62 17" stroke="#FFFFFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M404 405c35 0 50 38 22 59-21 15-54 8-60-17" stroke="#FF8A1F" stroke-width="20" stroke-linecap="round"/>
+  <path d="M385 510c-14 40-34 72-66 96h256c-25-21-40-52-44-96H385Z" fill="#FFFFFF"/>
+  <path d="M373 538c-12 26-27 48-47 66M404 538c-10 26-24 48-42 66M434 538c-9 26-20 48-36 66M464 538c-7 26-15 48-27 66" stroke="#F86800" stroke-width="14" stroke-linecap="round"/>
+  <text x="450" y="792" fill="#FFFFFF" direction="rtl" text-anchor="middle" font-family="Noto Kufi Arabic, Tahoma, Arial, sans-serif" font-size="132" font-weight="800">شيخ الكار</text>
+  <path d="M250 848h400" stroke="#FF8A1F" stroke-width="4" stroke-linecap="round"/>
+  <text x="450" y="930" fill="#FFE4CF" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="10">RESTAURANT</text>
+</svg>

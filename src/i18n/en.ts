@@ -1,5 +1,5 @@
 export const en = {
-  brand: "Noura POS", tagline: "Restaurant operations, made simple", signIn: "Sign in", email: "Email address",
+  brand: "Sheikh Al Kar", tagline: "Authentic restaurant operations", signIn: "Sign in", email: "Email address",
   password: "Password", welcomeBack: "Welcome back", loginHint: "Enter your account details to continue.",
   demoAccounts: "Demo accounts", admin: "Administrator", cashier: "Cashier", dashboard: "Dashboard", reports: "Sales reports",
   products: "Products", categories: "Categories", discounts: "Offers & discounts", employees: "Employees", invoices: "Invoices",
@@ -18,6 +18,9 @@ export const en = {
   productPerformance: "Product performance", grossSales: "Gross sales", completed: "Completed", payment: "Payment",
   quickAction: "Quick actions", manageCatalog: "Manage catalog", createOffer: "Create an offer", inviteCashier: "Add a cashier",
   operatingNow: "Operating now", mainBranch: "Main Branch", table: "Table", cards: "Cards", noResults: "No results found",
+  finance: "Finance", totalRevenue: "Total revenue", grossProfit: "Gross profit", totalExpenses: "Total expenses",
+  netProfit: "Net profit", financialPerformance: "Financial performance", bestSellingProducts: "Best-selling products",
+  productCosts: "Product costs", expenses: "Expenses", profitByCategory: "Profit by category", profitByEmployee: "Profit by employee",
+  ingredientCosting: "Ingredient costing", expenseManagement: "Expense management", recipeBuilder: "Recipe builder", ingredient: "Ingredient", quantity: "Quantity",
 };
 export type TranslationKey = keyof typeof en;
-

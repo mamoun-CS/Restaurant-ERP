@@ -26,6 +26,33 @@ enum InvoiceStatus {
   VOIDED
 }
 
+enum ExpenseCategory {
+  RENT
+  SALARIES
+  ELECTRICITY
+  WATER
+  INTERNET
+  MAINTENANCE
+  MARKETING
+  DELIVERY
+  EQUIPMENT
+  OTHER
+}
+
+enum ExpenseFrequency {
+  ONE_TIME
+  DAILY
+  WEEKLY
+  MONTHLY
+  RECURRING
+}
+
+enum PayrollStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}
+
 model Branch {
   id        String    @id @default(cuid())
   name      String
@@ -49,7 +76,10 @@ model User {
   branchId     String?
   branch       Branch?    @relation(fields: [branchId], references: [id])
   invoices     Invoice[]  @relation("CashierInvoices")
+  expenses     OperatingExpense[]
   auditLogs    AuditLog[]
+  baseSalary   Decimal    @default(0) @db.Decimal(12, 2)
+  payrollRecords PayrollRecord[] @relation("EmployeePayroll")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -71,6 +101,7 @@ model Product {
   id           String               @id @default(cuid())
   sku          String               @unique
   price        Decimal              @db.Decimal(10, 2)
+  currentCost  Decimal              @default(0) @db.Decimal(10, 2)
   imageUrl     String?
   active       Boolean              @default(true)
   categoryId   String
@@ -78,6 +109,7 @@ model Product {
   translations ProductTranslation[]
   sizes        ProductSize[]
   addons       ProductAddon[]
+  ingredients  ProductIngredient[]
   discounts    DiscountCampaign[]   @relation("DiscountProducts")
   invoiceItems InvoiceItem[]
   createdAt    DateTime             @default(now())
@@ -111,6 +143,78 @@ model ProductAddon {
   price     Decimal @db.Decimal(10, 2)
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Ingredient {
+  id           String              @id @default(cuid())
+  nameEn       String
+  nameAr       String
+  unit         String
+  purchaseCost Decimal             @db.Decimal(10, 4)
+  purchaseQty  Decimal             @db.Decimal(10, 4)
+  unitCost     Decimal             @db.Decimal(10, 4)
+  active       Boolean             @default(true)
+  products     ProductIngredient[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model ProductIngredient {
+  id           String     @id @default(cuid())
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantityUsed Decimal    @db.Decimal(10, 4)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([productId, ingredientId])
+}
+
+model OperatingExpense {
+  id          String           @id @default(cuid())
+  title       String
+  category    ExpenseCategory
+  frequency   ExpenseFrequency @default(ONE_TIME)
+  amount      Decimal          @db.Decimal(12, 2)
+  expenseDate DateTime
+  notes       String?
+  active      Boolean          @default(true)
+  branchId    String?
+  createdById String?
+  createdBy   User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  invoiceName String?
+  invoiceUrl  String?
+  payrollRecord PayrollRecord? @relation(fields: [payrollRecordId], references: [id])
+  payrollRecordId String? @unique
+
+  @@index([expenseDate, category])
+}
+
+model PayrollRecord {
+  id            String        @id @default(cuid())
+  employeeId    String
+  employee      User          @relation("EmployeePayroll", fields: [employeeId], references: [id])
+  payrollMonth  DateTime
+  baseSalary    Decimal       @db.Decimal(12, 2)
+  overtime      Decimal       @default(0) @db.Decimal(12, 2)
+  bonuses       Decimal       @default(0) @db.Decimal(12, 2)
+  deductions    Decimal       @default(0) @db.Decimal(12, 2)
+  advances      Decimal       @default(0) @db.Decimal(12, 2)
+  netSalary     Decimal       @db.Decimal(12, 2)
+  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
+  status        PayrollStatus @default(UNPAID)
+  approved      Boolean       @default(false)
+  paymentDate   DateTime?
+  expense       OperatingExpense?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([employeeId, payrollMonth])
+  @@index([payrollMonth, status])
 }
 
 model DiscountCampaign {
@@ -165,6 +269,8 @@ model InvoiceItem {
   unitPrice            Decimal            @db.Decimal(10, 2)
   selectedSizeSnapshot String?
   totalPrice           Decimal            @db.Decimal(12, 2)
+  unitCostSnapshot     Decimal            @default(0) @db.Decimal(10, 2)
+  totalCostSnapshot    Decimal            @default(0) @db.Decimal(12, 2)
   addons               InvoiceItemAddon[]
 }
 
