@@ -126,32 +126,32 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
   }
   return (
     <main className="min-h-screen bg-background">
-      <header className="h-20 bg-sidebar text-white flex items-center px-5 gap-4">
+      <header className="min-h-20 bg-sidebar text-white flex flex-wrap items-center px-4 sm:px-5 py-3 gap-3">
         <Link href="/cash">
           <BrandLogo className="max-w-[190px]" />
         </Link>
-        <div className="ms-auto flex items-center gap-2">
-          <button style={{color : "black" }}
+        <div className="ms-auto flex flex-wrap items-center justify-end gap-2">
+          <button
             onClick={() => setLocale(ar ? "en" : "ar")}
-            className="btn-secondary bg-white/10 border-white/10 text-white flex items-center gap-2"
+            className="btn-secondary !w-auto bg-white/10 border-white/10 text-black"
           >
             <Globe2 size={17} />
             {ar ? "English" : "العربية"}
           </button>
-          <Link style={{color : "black"}}
-            className="btn-secondary bg-white/10 border-white/10 text-white"
+          <Link
+            className="btn-secondary !w-auto bg-white/10 border-white/10 text-black"
             href="/pos"
           >
             {ar ? "نقطة البيع" : "POS"}
           </Link>
           <form action="/api/auth/logout" method="post">
-            <button className="size-11 rounded-xl bg-white/10 grid place-items-center" >
+            <button className="size-11 rounded-xl bg-white/10 grid place-items-center" aria-label={ar ? "تسجيل الخروج" : "Logout"}>
               <LogOut size={18} />
             </button>
           </form>
         </div>
       </header>
-      <div className="max-w-6xl mx-auto p-4 sm:p-7">
+      <div className="page-container max-w-6xl">
         <div className="flex flex-col md:flex-row md:items-end gap-4 mb-5">
           <div className="flex-1">
             <h1 className="text-2xl font-bold">
@@ -231,7 +231,7 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
                   {(totals[code] || 0).toFixed(2)}
                 </span>
               </div>
-              <table className="w-full text-sm">
+              <table className="w-full text-sm mobile-hidden-table">
                 <thead className="bg-background text-muted">
                   <tr>
                     <th className="p-2 text-start">
@@ -300,6 +300,35 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
                   )}
                 </tbody>
               </table>
+              <div className="mobile-card-list p-3">
+                {counts.map(
+                  (row, index) =>
+                    row.code === code && (
+                      <article key={`${row.code}-${row.value}-card`} className="rounded-xl border border-border bg-background p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <b className="text-lg">{row.value} {code}</b>
+                          <span className="amount text-primary font-bold">{(row.value * row.qty).toFixed(2)}</span>
+                        </div>
+                        <label className="block mt-3">
+                          <span className="text-xs font-bold text-muted">{ar ? "العدد" : "Quantity"}</span>
+                          <input className="input mt-1 text-end" inputMode="numeric" value={row.qty} onChange={(e) => update(index, "qty", e.target.value)} />
+                        </label>
+                        {mode === "close" && (
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <label>
+                              <span className="text-xs font-bold text-muted">{ar ? "مسحوب" : "Withdrawn"}</span>
+                              <input className="input mt-1 text-end" inputMode="numeric" value={row.withdrawn} onChange={(e) => update(index, "withdrawn", e.target.value)} />
+                            </label>
+                            <label>
+                              <span className="text-xs font-bold text-muted">{ar ? "متبقي" : "Remaining"}</span>
+                              <input className="input mt-1 text-end" inputMode="numeric" value={row.remaining} onChange={(e) => update(index, "remaining", e.target.value)} />
+                            </label>
+                          </div>
+                        )}
+                      </article>
+                    ),
+                )}
+              </div>
             </section>
           ))}
         </div>
@@ -317,8 +346,8 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
                 : "Required when there is a handover difference, shortage, or overage."
             }
           />
-          <div className="flex items-center gap-3 mt-4">
-            <button className="btn-primary" onClick={submit}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
+            <button className="btn-primary mobile-full" onClick={submit}>
               {mode === "open"
                 ? ar
                   ? "تأكيد فتح الكاش"

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyToken } from "@/lib/auth";
 import { audit, convertTotalsToBase, getLatestCarryover, getRateSnapshot, notifyManagers, sumCounts } from "@/lib/cash";
 import { db } from "@/lib/db";
+import { apiError, assertSameOrigin, rateLimit, requestIp } from "@/lib/api";
 
 const schema = z.object({
   registerId: z.string(),
@@ -12,14 +13,18 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const csrfError = assertSameOrigin(request);
+  if (csrfError) return csrfError;
+  const limited = rateLimit(`cash-open:${requestIp(request)}`, 8, 60_000);
+  if (limited) return limited;
   const user = await verifyToken((await cookies()).get("erp_session")?.value);
-  if (user?.role !== "CASHIER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (user?.role !== "CASHIER") return apiError("FORBIDDEN", "Forbidden", 403);
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid opening count", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return apiError("INVALID_INPUT", "Invalid opening count", 400, parsed.error.flatten());
   const register = await db.cashRegister.findFirst({ where: { id: parsed.data.registerId, branchId: user.branchId, active: true }, include: { branch: true } });
-  if (!register) return NextResponse.json({ error: "Cash register not found" }, { status: 404 });
-  const existing = await db.cashShift.findFirst({ where: { registerId: register.id, status: "OPEN" } });
-  if (existing) return NextResponse.json({ error: "This cash register already has an open shift" }, { status: 409 });
+  if (!register) return apiError("RESOURCE_NOT_FOUND", "Cash register not found", 404);
+  const existing = await db.cashShift.findFirst({ where: { OR: [{ registerId: register.id, status: "OPEN" }, { employeeId: user.userId, status: "OPEN" }] } });
+  if (existing) return apiError("CASH_SHIFT_ALREADY_OPEN", "An open shift already exists for this register or employee.", 409);
   const rates = await getRateSnapshot();
   const totals = sumCounts(parsed.data.counts);
   const openingTotalBase = convertTotalsToBase(totals, rates);
@@ -29,9 +34,11 @@ export async function POST(request: Request) {
     return { currencyCode: carryover.currencyCode, carryoverAmount: carryover.amount, actualOpeningAmount: actual, differenceAmount: actual.sub(carryover.amount) };
   }).filter((item) => !item.differenceAmount.eq(0)) ?? [];
   if (handoverDiffs.length && !parsed.data.discrepancyNote?.trim()) {
-    return NextResponse.json({ error: "A handover discrepancy note is required", handoverDiffs }, { status: 400 });
+    return apiError("INVALID_INPUT", "A handover discrepancy note is required", 400, { handoverDiffs });
   }
   const shift = await db.$transaction(async (tx) => {
+    const duplicate = await tx.cashShift.findFirst({ where: { OR: [{ registerId: register.id, status: "OPEN" }, { employeeId: user.userId, status: "OPEN" }] } });
+    if (duplicate) throw new Error("CASH_SHIFT_ALREADY_OPEN");
     const created = await tx.cashShift.create({
       data: {
         shiftNumber: `SH-${Date.now().toString().slice(-9)}`,
@@ -65,7 +72,11 @@ export async function POST(request: Request) {
       });
     }
     return created;
+  }, { isolationLevel: "Serializable" }).catch((error) => {
+    if (String(error.message) === "CASH_SHIFT_ALREADY_OPEN") return null;
+    throw error;
   });
+  if (!shift) return apiError("CASH_SHIFT_ALREADY_OPEN", "An open shift already exists for this register or employee.", 409);
   await audit(user, "CASH_SHIFT_OPENED", "CashShift", shift.id, { registerId: register.id, counts: parsed.data.counts }, null, shift, request);
   if (handoverDiffs.length) {
     await notifyManagers("HANDOVER_DIFFERENCE", "Shift handover difference", `${user.name} opened ${register.number} with a carryover difference.`, shift.id, { handoverDiffs, note: parsed.data.discrepancyNote });

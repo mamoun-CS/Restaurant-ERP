@@ -22,7 +22,7 @@ import {
   ChartNoAxesCombined,
   Banknote,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/components/language-provider";
 import type { TranslationKey } from "@/i18n/en";
@@ -54,6 +54,12 @@ export function AppShell({
   const pathname = usePathname();
   const { t, locale, setLocale } = useLanguage();
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [open]);
   const sidebar = (
     <>
       <div className="h-20 px-5 flex items-center justify-between border-b border-white/10">
@@ -142,12 +148,12 @@ export function AppShell({
             className="fixed inset-0 bg-text/40 z-40 lg:hidden"
             onClick={() => setOpen(false)}
           />
-          <aside className="fixed flex flex-col start-0 top-0 bottom-0 w-[280px] bg-sidebar z-50 lg:hidden">
+          <aside className="fixed flex flex-col start-0 top-0 bottom-0 w-[min(86vw,320px)] bg-sidebar z-50 lg:hidden">
             {sidebar}
           </aside>
         </>
       )}
-      <header className="h-20 bg-surface/95 backdrop-blur border-b border-border sticky top-0 z-20 px-4 sm:px-7 flex items-center gap-4">
+      <header className="min-h-20 bg-surface/95 backdrop-blur border-b border-border sticky top-0 z-20 px-4 sm:px-7 py-3 flex items-center gap-4">
         <button
           onClick={() => setOpen(true)}
           className="lg:hidden btn-secondary !p-0 size-11 grid place-items-center"
@@ -162,7 +168,7 @@ export function AppShell({
             </p>
           )}
         </div>
-        <div className="ms-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2 min-w-0">
           {action}
           <button
             onClick={() => setLocale(locale === "en" ? "ar" : "en")}
@@ -183,7 +189,7 @@ export function AppShell({
           </button>
         </div>
       </header>
-      <main className="p-4 sm:p-7 max-w-[1500px] mx-auto">{children}</main>
+      <main className="page-container">{children}</main>
     </div>
   );
 }

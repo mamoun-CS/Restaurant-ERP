@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyToken } from "@/lib/auth";
 import { audit } from "@/lib/cash";
 import { db } from "@/lib/db";
+import { apiError, assertSameOrigin, rateLimit, requestIp } from "@/lib/api";
 
 const rateSchema = z.object({ currencyCode: z.enum(["USD", "JOD"]), rateToBase: z.number().positive() });
 
@@ -25,12 +26,25 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const csrfError = assertSameOrigin(request);
+  if (csrfError) return csrfError;
+  const limited = rateLimit(`exchange-rate:${requestIp(request)}`, 20, 60_000);
+  if (limited) return limited;
   const user = await verifyToken((await cookies()).get("erp_session")?.value);
-  if (user?.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (user?.role !== "ADMIN") return apiError("FORBIDDEN", "Forbidden", 403);
   const parsed = rateSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid rate", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return apiError("INVALID_INPUT", "Invalid rate", 400, parsed.error.flatten());
+  const manager = await db.user.findFirst({
+    where: {
+      role: "ADMIN",
+      active: true,
+      OR: [{ id: user.userId }, { email: user.email }],
+    },
+    select: { id: true },
+  });
+  if (!manager) return apiError("UNAUTHORIZED", "Your session is stale. Please sign in again.", 401);
   const currency = await db.currency.findUnique({ where: { code: parsed.data.currencyCode } });
-  if (!currency) return NextResponse.json({ error: "Currency not found" }, { status: 404 });
+  if (!currency) return apiError("RESOURCE_NOT_FOUND", "Currency not found", 404);
   const previous = await db.exchangeRate.findFirst({ where: { currencyId: currency.id, active: true }, orderBy: { createdAt: "desc" } });
   const result = await db.$transaction(async (tx) => {
     await tx.exchangeRate.updateMany({ where: { currencyId: currency.id, active: true }, data: { active: false } });
@@ -39,7 +53,7 @@ export async function PATCH(request: Request) {
         currencyId: currency.id,
         rateToBase: parsed.data.rateToBase,
         previousRate: previous?.rateToBase,
-        managerId: user.userId,
+        managerId: manager.id,
       },
     });
   });

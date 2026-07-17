@@ -4,6 +4,7 @@ import { z } from "zod";
 import { verifyToken } from "@/lib/auth";
 import { audit, convertTotalsToBase, expectedCashByCurrency, getRateSnapshot, notifyManagers, sumCounts } from "@/lib/cash";
 import { db } from "@/lib/db";
+import { apiError, assertSameOrigin, rateLimit, requestIp } from "@/lib/api";
 
 const schema = z.object({
   shiftId: z.string(),
@@ -18,14 +19,18 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const csrfError = assertSameOrigin(request);
+  if (csrfError) return csrfError;
+  const limited = rateLimit(`cash-close:${requestIp(request)}`, 8, 60_000);
+  if (limited) return limited;
   const user = await verifyToken((await cookies()).get("erp_session")?.value);
-  if (user?.role !== "CASHIER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (user?.role !== "CASHIER") return apiError("FORBIDDEN", "Forbidden", 403);
   const parsed = schema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid closing count", details: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return apiError("INVALID_INPUT", "Invalid closing count", 400, parsed.error.flatten());
   const invalid = parsed.data.counts.find((count) => count.withdrawnQty + count.remainingQty !== count.quantity);
-  if (invalid) return NextResponse.json({ error: "Withdrawn quantity plus remaining quantity must equal available quantity", invalid }, { status: 400 });
+  if (invalid) return apiError("INVALID_INPUT", "Withdrawn quantity plus remaining quantity must equal available quantity", 400, { invalid });
   const shift = await db.cashShift.findFirst({ where: { id: parsed.data.shiftId, employeeId: user.userId, status: "OPEN" }, include: { register: true, branch: true } });
-  if (!shift) return NextResponse.json({ error: "Open shift not found" }, { status: 404 });
+  if (!shift) return apiError("NO_OPEN_SHIFT", "Open shift not found", 404);
   const rates = await getRateSnapshot();
   const actualByCurrency = sumCounts(parsed.data.counts);
   const remainingByCurrency = sumCounts(parsed.data.counts.map((count) => ({ ...count, quantity: count.remainingQty })));
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
     return { currencyCode: code, actualAmount: actual, expectedAmount: expected, differenceAmount: actual.sub(expected), differenceBase: actual.sub(expected).mul(rate) };
   }).filter((item) => !item.differenceAmount.eq(0));
   if (discrepancyRows.length && !parsed.data.note?.trim()) {
-    return NextResponse.json({ error: "A discrepancy explanation is required", discrepancies: discrepancyRows }, { status: 400 });
+    return apiError("INVALID_INPUT", "A discrepancy explanation is required", 400, { discrepancies: discrepancyRows });
   }
   const reportReference = `CSR-${Date.now().toString().slice(-10)}`;
   const closed = await db.$transaction(async (tx) => {
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
     const updated = await tx.cashShift.update({
       where: { id: shift.id },
       data: {
-        status: "CLOSED",
+        status: discrepancyRows.length ? "REVIEW_REQUIRED" : "CLOSED",
         closedAt: new Date(),
         actualClosingTotalBase: actualBase,
         expectedClosingTotalBase: expectedBase,

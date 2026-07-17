@@ -103,9 +103,10 @@ function add(map: Map<string, Decimal>, code: string, amount: Decimal) {
 }
 
 export async function audit(user: Session | null, action: string, entityType: string, entityId?: string, metadata?: unknown, previousData?: unknown, newData?: unknown, request?: Request) {
+  const userExists = user?.userId ? await db.user.findUnique({ where: { id: user.userId }, select: { id: true } }).catch(() => null) : null;
   await db.auditLog.create({
     data: {
-      userId: user?.userId,
+      userId: userExists?.id,
       action,
       entityType,
       entityId,

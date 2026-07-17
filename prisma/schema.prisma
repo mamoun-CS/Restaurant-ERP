@@ -25,7 +25,12 @@ enum PaymentMethod {
 
 enum CashShiftStatus {
   OPEN
+  CLOSING_PENDING
   CLOSED
+  REVIEW_REQUIRED
+  APPROVED
+  REJECTED
+  FORCE_CLOSED
 }
 
 enum ShiftReportReviewStatus {
@@ -48,13 +53,104 @@ enum KitchenOrderStatus {
 
 enum OrderType {
   DINE_IN
+  TAKEAWAY
   PICKUP
   DELIVERY
+  EMPLOYEE_ORDER
+  HOSPITALITY
+  COMPLIMENTARY
 }
 
 enum InvoiceStatus {
-  COMPLETED
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  REFUNDED
+  PARTIALLY_REFUNDED
   VOIDED
+  COMPLETED
+}
+
+enum PurchaseInvoiceStatus {
+  DRAFT
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+  RETURNED
+  PARTIALLY_RETURNED
+}
+
+enum PaymentSource {
+  CASH_REGISTER
+  BANK
+  EXTERNAL_CASH
+}
+
+enum SupplierPaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  CHEQUE
+  OTHER
+}
+
+enum PurchaseReturnStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum ExpenseSource {
+  CASH_REGISTER
+  BANK
+  EXTERNAL_CASH
+}
+
+enum ExpenseApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVERSED
+}
+
+enum OpeningBalanceSource {
+  PREVIOUS_SHIFT_CARRYOVER
+  MANAGER_ADDITION
+  MIXED
+}
+
+enum CashAdjustmentType {
+  CORRECTION
+  REVERSAL
+  MANAGER_ADJUSTMENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  VOIDED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum SettlementStatus {
+  UNSETTLED
+  PARTIALLY_SETTLED
+  SETTLED
+  DISPUTED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
 }
 
 enum ExpenseCategory {
@@ -85,41 +181,55 @@ enum PayrollStatus {
 }
 
 model Branch {
-  id        String    @id @default(cuid())
-  name      String
-  nameAr    String
-  code      String    @unique
-  address   String?
-  active    Boolean   @default(true)
-  users     User[]
-  invoices  Invoice[]
-  cashRegisters CashRegister[]
-  cashShifts CashShift[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                 String              @id @default(cuid())
+  name               String
+  nameAr             String
+  code               String              @unique
+  address            String?
+  active             Boolean             @default(true)
+  users              User[]
+  invoices           Invoice[]
+  purchaseInvoices   PurchaseInvoice[]
+  supplierPayments   SupplierPayment[]
+  inventoryMovements InventoryMovement[]
+  cashRegisters      CashRegister[]
+  cashShifts         CashShift[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  email        String     @unique
-  passwordHash String
-  role         Role
-  active       Boolean    @default(true)
-  branchId     String?
-  branch       Branch?    @relation(fields: [branchId], references: [id])
-  invoices     Invoice[]  @relation("CashierInvoices")
-  cashShifts    CashShift[]
-  shiftExpenses ShiftExpense[]
-  shiftReturns  ShiftReturn[]
-  cashNotifications CashNotification[]
-  managedExchangeRates ExchangeRate[] @relation("ExchangeRateManager")
-  expenses     OperatingExpense[]
-  auditLogs    AuditLog[]
-  baseSalary   Decimal    @default(0) @db.Decimal(12, 2)
-  payrollRecords PayrollRecord[] @relation("EmployeePayroll")
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                      String               @id @default(cuid())
+  name                    String
+  email                   String               @unique
+  passwordHash            String
+  role                    Role
+  active                  Boolean              @default(true)
+  deletedAt               DateTime?
+  deletedBy               String?
+  lastLoginAt             DateTime?
+  failedLoginCount        Int                  @default(0)
+  lockedUntil             DateTime?
+  forcePasswordChange     Boolean              @default(false)
+  sessionVersion          Int                  @default(1)
+  branchId                String?
+  branch                  Branch?              @relation(fields: [branchId], references: [id])
+  invoices                Invoice[]            @relation("CashierInvoices")
+  cashShifts              CashShift[]
+  shiftExpenses           ShiftExpense[]
+  shiftReturns            ShiftReturn[]
+  cashNotifications       CashNotification[]
+  managedExchangeRates    ExchangeRate[]       @relation("ExchangeRateManager")
+  expenses                OperatingExpense[]
+  createdPurchaseInvoices PurchaseInvoice[]
+  createdSupplierPayments SupplierPayment[]
+  createdPurchaseReturns  PurchaseReturn[]
+  auditLogs               AuditLog[]
+  passwordResetTokens     PasswordResetToken[]
+  baseSalary              Decimal              @default(0) @db.Decimal(12, 2)
+  payrollRecords          PayrollRecord[]      @relation("EmployeePayroll")
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 }
 
 model Category {
@@ -127,6 +237,8 @@ model Category {
   nameEn       String
   nameAr       String
   active       Boolean            @default(true)
+  deletedAt    DateTime?
+  deletedBy    String?
   sortOrder    Int                @default(0)
   products     Product[]
   discounts    DiscountCampaign[] @relation("DiscountCategories")
@@ -136,23 +248,41 @@ model Category {
 }
 
 model Product {
-  id           String               @id @default(cuid())
-  sku          String               @unique
-  price        Decimal              @db.Decimal(10, 2)
-  currentCost  Decimal              @default(0) @db.Decimal(10, 2)
-  imageUrl     String?
-  active       Boolean              @default(true)
-  requiresPreparation Boolean        @default(true)
-  categoryId   String
-  category     Category             @relation(fields: [categoryId], references: [id])
-  translations ProductTranslation[]
-  sizes        ProductSize[]
-  addons       ProductAddon[]
-  ingredients  ProductIngredient[]
-  discounts    DiscountCampaign[]   @relation("DiscountProducts")
-  invoiceItems InvoiceItem[]
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id                   String                 @id @default(cuid())
+  sku                  String                 @unique
+  barcode              String?                @unique
+  price                Decimal                @db.Decimal(10, 2)
+  currentCost          Decimal                @default(0) @db.Decimal(10, 2)
+  imageUrl             String?
+  active               Boolean                @default(true)
+  deletedAt            DateTime?
+  deletedBy            String?
+  requiresPreparation  Boolean                @default(true)
+  categoryId           String
+  category             Category               @relation(fields: [categoryId], references: [id])
+  translations         ProductTranslation[]
+  sizes                ProductSize[]
+  addons               ProductAddon[]
+  ingredients          ProductIngredient[]
+  discounts            DiscountCampaign[]     @relation("DiscountProducts")
+  invoiceItems         InvoiceItem[]
+  purchaseItems        PurchaseInvoiceItem[]
+  purchasePriceHistory PurchasePriceHistory[]
+  inventoryMovements   InventoryMovement[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 model ProductTranslation {
@@ -212,45 +342,75 @@ model ProductIngredient {
 }
 
 model OperatingExpense {
-  id          String           @id @default(cuid())
-  title       String
-  category    ExpenseCategory
-  frequency   ExpenseFrequency @default(ONE_TIME)
-  amount      Decimal          @db.Decimal(12, 2)
-  expenseDate DateTime
-  notes       String?
-  active      Boolean          @default(true)
-  branchId    String?
-  createdById String?
-  createdBy   User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  invoiceName String?
-  invoiceUrl  String?
-  payrollRecord PayrollRecord? @relation(fields: [payrollRecordId], references: [id])
-  payrollRecordId String? @unique
+  id                 String                 @id @default(cuid())
+  title              String
+  category           ExpenseCategory
+  expenseCategoryId  String?
+  expenseCategory    ExpenseCategoryMaster? @relation(fields: [expenseCategoryId], references: [id], onDelete: SetNull)
+  frequency          ExpenseFrequency       @default(ONE_TIME)
+  amount             Decimal                @db.Decimal(12, 2)
+  currencyCode       String                 @default("ILS")
+  exchangeRateToBase Decimal                @default(1) @db.Decimal(12, 6)
+  source             ExpenseSource          @default(EXTERNAL_CASH)
+  paymentMethod      SupplierPaymentMethod  @default(CASH)
+  approvalStatus     ExpenseApprovalStatus  @default(APPROVED)
+  approvedById       String?
+  approvalDate       DateTime?
+  rejectionReason    String?
+  reversalOfId       String?
+  supplierId         String?
+  supplier           Supplier?              @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  expenseDate        DateTime
+  notes              String?
+  active             Boolean                @default(true)
+  branchId           String?
+  createdById        String?
+  createdBy          User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  invoiceName        String?
+  invoiceUrl         String?
+  payrollRecord      PayrollRecord?         @relation(fields: [payrollRecordId], references: [id])
+  payrollRecordId    String?                @unique
 
   @@index([expenseDate, category])
+  @@index([branchId, expenseDate])
+  @@index([approvalStatus, createdAt])
+}
+
+model ExpenseCategoryMaster {
+  id               String             @id @default(cuid())
+  nameEn           String
+  nameAr           String
+  active           Boolean            @default(true)
+  requiresApproval Boolean            @default(false)
+  cashierLimit     Decimal            @default(0) @db.Decimal(12, 2)
+  sortOrder        Int                @default(0)
+  deletedAt        DateTime?
+  deletedBy        String?
+  expenses         OperatingExpense[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 }
 
 model PayrollRecord {
-  id            String        @id @default(cuid())
-  employeeId    String
-  employee      User          @relation("EmployeePayroll", fields: [employeeId], references: [id])
-  payrollMonth  DateTime
-  baseSalary    Decimal       @db.Decimal(12, 2)
-  overtime      Decimal       @default(0) @db.Decimal(12, 2)
-  bonuses       Decimal       @default(0) @db.Decimal(12, 2)
-  deductions    Decimal       @default(0) @db.Decimal(12, 2)
-  advances      Decimal       @default(0) @db.Decimal(12, 2)
-  netSalary     Decimal       @db.Decimal(12, 2)
-  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
-  status        PayrollStatus @default(UNPAID)
-  approved      Boolean       @default(false)
-  paymentDate   DateTime?
-  expense       OperatingExpense?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id           String            @id @default(cuid())
+  employeeId   String
+  employee     User              @relation("EmployeePayroll", fields: [employeeId], references: [id])
+  payrollMonth DateTime
+  baseSalary   Decimal           @db.Decimal(12, 2)
+  overtime     Decimal           @default(0) @db.Decimal(12, 2)
+  bonuses      Decimal           @default(0) @db.Decimal(12, 2)
+  deductions   Decimal           @default(0) @db.Decimal(12, 2)
+  advances     Decimal           @default(0) @db.Decimal(12, 2)
+  netSalary    Decimal           @db.Decimal(12, 2)
+  amountPaid   Decimal           @default(0) @db.Decimal(12, 2)
+  status       PayrollStatus     @default(UNPAID)
+  approved     Boolean           @default(false)
+  paymentDate  DateTime?
+  expense      OperatingExpense?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@unique([employeeId, payrollMonth])
   @@index([payrollMonth, status])
@@ -273,31 +433,43 @@ model DiscountCampaign {
 }
 
 model Invoice {
-  id             String            @id @default(cuid())
-  number         String            @unique
-  status         InvoiceStatus     @default(COMPLETED)
-  subtotal       Decimal           @db.Decimal(12, 2)
-  discountAmount Decimal           @default(0) @db.Decimal(12, 2)
-  totalAmount    Decimal           @db.Decimal(12, 2)
-  paymentMethod  PaymentMethod     @default(CASH)
-  shiftId        String?
-  shift          CashShift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  cashierId      String
-  cashier        User              @relation("CashierInvoices", fields: [cashierId], references: [id])
-  branchId       String
-  branch         Branch            @relation(fields: [branchId], references: [id])
-  discountId     String?
-  discount       DiscountCampaign? @relation(fields: [discountId], references: [id])
-  items          InvoiceItem[]
-  payment        Payment?
-  payments       InvoicePayment[]
-  kitchenOrder   KitchenOrder?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                  String            @id @default(cuid())
+  number              String            @unique
+  status              InvoiceStatus     @default(COMPLETED)
+  officialNumber      String?           @unique
+  idempotencyKey      String?           @unique
+  clientTransactionId String?           @unique
+  orderType           OrderType         @default(PICKUP)
+  cancellationReason  String?
+  voidRequestedById   String?
+  voidApprovedById    String?
+  voidRequestedAt     DateTime?
+  voidApprovedAt      DateTime?
+  subtotal            Decimal           @db.Decimal(12, 2)
+  discountAmount      Decimal           @default(0) @db.Decimal(12, 2)
+  totalAmount         Decimal           @db.Decimal(12, 2)
+  paymentMethod       PaymentMethod     @default(CASH)
+  shiftId             String?
+  shift               CashShift?        @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  cashierId           String
+  cashier             User              @relation("CashierInvoices", fields: [cashierId], references: [id])
+  branchId            String
+  branch              Branch            @relation(fields: [branchId], references: [id])
+  discountId          String?
+  discount            DiscountCampaign? @relation(fields: [discountId], references: [id])
+  items               InvoiceItem[]
+  payment             Payment?
+  payments            InvoicePayment[]
+  kitchenOrder        KitchenOrder?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
-  @@index([createdAt, branchId])
+  @@index([createdAt])
+  @@index([branchId])
   @@index([cashierId])
   @@index([shiftId])
+  @@index([status])
+  @@index([orderType])
 }
 
 model InvoiceItem {
@@ -332,49 +504,50 @@ model Payment {
   invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   method    PaymentMethod @default(CASH)
   amount    Decimal       @db.Decimal(12, 2)
+  status    PaymentStatus @default(COMPLETED)
   paidAt    DateTime      @default(now())
 }
 
 model Currency {
-  id             String                 @id @default(cuid())
-  code           String                 @unique
-  name           String
-  nameAr         String?
-  isBase         Boolean                @default(false)
-  active         Boolean                @default(true)
-  denominations  CurrencyDenomination[]
-  exchangeRates  ExchangeRate[]
+  id              String                 @id @default(cuid())
+  code            String                 @unique
+  name            String
+  nameAr          String?
+  isBase          Boolean                @default(false)
+  active          Boolean                @default(true)
+  denominations   CurrencyDenomination[]
+  exchangeRates   ExchangeRate[]
   invoicePayments InvoicePayment[]
-  shiftExpenses ShiftExpense[]
-  shiftReturns  ShiftReturn[]
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  shiftExpenses   ShiftExpense[]
+  shiftReturns    ShiftReturn[]
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 }
 
 model ExchangeRate {
-  id              String    @id @default(cuid())
-  currencyId      String
-  currency        Currency  @relation(fields: [currencyId], references: [id])
-  rateToBase      Decimal   @db.Decimal(12, 6)
-  previousRate    Decimal?  @db.Decimal(12, 6)
-  managerId       String?
-  manager         User?     @relation("ExchangeRateManager", fields: [managerId], references: [id], onDelete: SetNull)
-  active          Boolean   @default(true)
-  createdAt       DateTime  @default(now())
+  id           String   @id @default(cuid())
+  currencyId   String
+  currency     Currency @relation(fields: [currencyId], references: [id])
+  rateToBase   Decimal  @db.Decimal(12, 6)
+  previousRate Decimal? @db.Decimal(12, 6)
+  managerId    String?
+  manager      User?    @relation("ExchangeRateManager", fields: [managerId], references: [id], onDelete: SetNull)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   @@index([currencyId, active])
 }
 
 model CurrencyDenomination {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   currencyId String
-  currency  Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
-  value     Decimal  @db.Decimal(12, 2)
-  label     String
-  active    Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  value      Decimal  @db.Decimal(12, 2)
+  label      String
+  active     Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([currencyId, value])
 }
@@ -390,256 +563,490 @@ model CashRegister {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  @@unique([branchId, number])
   @@index([branchId, active])
 }
 
 model CashShift {
-  id              String          @id @default(cuid())
-  shiftNumber     String          @unique
-  status          CashShiftStatus @default(OPEN)
-  branchId        String
-  branch          Branch          @relation(fields: [branchId], references: [id])
-  registerId      String
-  register        CashRegister    @relation(fields: [registerId], references: [id])
-  employeeId      String
-  employee        User            @relation(fields: [employeeId], references: [id])
-  openedAt        DateTime        @default(now())
-  closedAt        DateTime?
-  openingTotalBase Decimal        @default(0) @db.Decimal(14, 2)
-  actualClosingTotalBase Decimal? @db.Decimal(14, 2)
-  expectedClosingTotalBase Decimal? @db.Decimal(14, 2)
-  differenceTotalBase Decimal?    @db.Decimal(14, 2)
-  openingRates    Json
-  closingRates    Json?
-  previousShiftId String?
-  previousShift   CashShift?      @relation("ShiftHandover", fields: [previousShiftId], references: [id], onDelete: SetNull)
-  nextShifts      CashShift[]     @relation("ShiftHandover")
-  employeeClosingNote String?
-  managerPrivateNote String?
-  managerEmployeeNote String?
-  reviewStatus    ShiftReportReviewStatus @default(NEW)
-  invoices        Invoice[]
-  openingDenominations ShiftOpeningDenomination[]
-  closingDenominations ShiftClosingDenomination[]
-  withdrawals     ShiftCashWithdrawal[]
-  carryovers      ShiftCashCarryover[]
-  expenses        ShiftExpense[]
-  returns         ShiftReturn[]
-  discrepancies   ShiftDiscrepancy[]
-  handoverDiscrepancies ShiftHandoverDiscrepancy[]
-  reports         ShiftReport[]
-  notifications   CashNotification[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                       String                     @id @default(cuid())
+  shiftNumber              String                     @unique
+  status                   CashShiftStatus            @default(OPEN)
+  posDeviceId              String?
+  branchId                 String
+  branch                   Branch                     @relation(fields: [branchId], references: [id])
+  registerId               String
+  register                 CashRegister               @relation(fields: [registerId], references: [id])
+  employeeId               String
+  employee                 User                       @relation(fields: [employeeId], references: [id])
+  openedAt                 DateTime                   @default(now())
+  closedAt                 DateTime?
+  openingTotalBase         Decimal                    @default(0) @db.Decimal(14, 2)
+  openingBalanceSource     OpeningBalanceSource       @default(PREVIOUS_SHIFT_CARRYOVER)
+  previousCarryoverBase    Decimal                    @default(0) @db.Decimal(14, 2)
+  managerAdditionBase      Decimal                    @default(0) @db.Decimal(14, 2)
+  openingDiscrepancyBase   Decimal                    @default(0) @db.Decimal(14, 2)
+  openingNote              String?
+  managerAdditionById      String?
+  actualClosingTotalBase   Decimal?                   @db.Decimal(14, 2)
+  expectedClosingTotalBase Decimal?                   @db.Decimal(14, 2)
+  differenceTotalBase      Decimal?                   @db.Decimal(14, 2)
+  openingRates             Json
+  closingRates             Json?
+  previousShiftId          String?
+  previousShift            CashShift?                 @relation("ShiftHandover", fields: [previousShiftId], references: [id], onDelete: SetNull)
+  nextShifts               CashShift[]                @relation("ShiftHandover")
+  employeeClosingNote      String?
+  managerPrivateNote       String?
+  managerEmployeeNote      String?
+  reviewStatus             ShiftReportReviewStatus    @default(NEW)
+  invoices                 Invoice[]
+  openingDenominations     ShiftOpeningDenomination[]
+  closingDenominations     ShiftClosingDenomination[]
+  withdrawals              ShiftCashWithdrawal[]
+  carryovers               ShiftCashCarryover[]
+  expenses                 ShiftExpense[]
+  returns                  ShiftReturn[]
+  discrepancies            ShiftDiscrepancy[]
+  handoverDiscrepancies    ShiftHandoverDiscrepancy[]
+  reports                  ShiftReport[]
+  notifications            CashNotification[]
+  adjustments              CashAdjustment[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 
   @@index([registerId, status])
   @@index([employeeId, openedAt])
+  @@index([status, openedAt])
   @@index([branchId, openedAt])
 }
 
 model ShiftOpeningDenomination {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  currencyCode   String
-  denominationValue Decimal @db.Decimal(12, 2)
-  quantity       Int
-  totalAmount    Decimal  @db.Decimal(14, 2)
+  id                String    @id @default(cuid())
+  shiftId           String
+  shift             CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  currencyCode      String
+  denominationValue Decimal   @db.Decimal(12, 2)
+  quantity          Int
+  totalAmount       Decimal   @db.Decimal(14, 2)
 
   @@index([shiftId, currencyCode])
 }
 
 model ShiftClosingDenomination {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  currencyCode   String
-  denominationValue Decimal @db.Decimal(12, 2)
-  availableQty   Int
-  withdrawnQty   Int
-  remainingQty   Int
-  totalAmount    Decimal  @db.Decimal(14, 2)
-  withdrawnAmount Decimal @db.Decimal(14, 2)
-  remainingAmount Decimal @db.Decimal(14, 2)
+  id                String    @id @default(cuid())
+  shiftId           String
+  shift             CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  currencyCode      String
+  denominationValue Decimal   @db.Decimal(12, 2)
+  availableQty      Int
+  withdrawnQty      Int
+  remainingQty      Int
+  totalAmount       Decimal   @db.Decimal(14, 2)
+  withdrawnAmount   Decimal   @db.Decimal(14, 2)
+  remainingAmount   Decimal   @db.Decimal(14, 2)
 
   @@index([shiftId, currencyCode])
 }
 
 model ShiftCashWithdrawal {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  currencyCode   String
-  amount         Decimal  @db.Decimal(14, 2)
-  createdAt      DateTime @default(now())
+  id           String    @id @default(cuid())
+  shiftId      String
+  shift        CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  currencyCode String
+  amount       Decimal   @db.Decimal(14, 2)
+  createdAt    DateTime  @default(now())
 }
 
 model ShiftCashCarryover {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  currencyCode   String
-  amount         Decimal  @db.Decimal(14, 2)
+  id                    String    @id @default(cuid())
+  shiftId               String
+  shift                 CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  currencyCode          String
+  amount                Decimal   @db.Decimal(14, 2)
   denominationBreakdown Json?
-  createdAt      DateTime @default(now())
+  createdAt             DateTime  @default(now())
 }
 
 model InvoicePayment {
-  id             String        @id @default(cuid())
-  invoiceId      String
-  invoice        Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  shiftId        String?
-  method         PaymentMethod
-  currencyId     String
-  currency       Currency      @relation(fields: [currencyId], references: [id])
-  currencyCode   String
-  amount         Decimal       @db.Decimal(14, 2)
-  exchangeRateToBase Decimal   @db.Decimal(12, 6)
-  convertedAmountBase Decimal  @db.Decimal(14, 2)
-  provider       String?
-  changeCurrencyCode String?
-  changeAmount   Decimal      @default(0) @db.Decimal(14, 2)
-  paidAt         DateTime      @default(now())
+  id                   String           @id @default(cuid())
+  invoiceId            String
+  invoice              Invoice          @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  shiftId              String?
+  method               PaymentMethod
+  status               PaymentStatus    @default(COMPLETED)
+  settlementStatus     SettlementStatus @default(UNSETTLED)
+  cardType             String?
+  bankName             String?
+  transactionReference String?
+  lastFourDigits       String?
+  posTerminalNumber    String?
+  transactionAt        DateTime?
+  settlementDate       DateTime?
+  bankFee              Decimal          @default(0) @db.Decimal(14, 2)
+  voidedById           String?
+  voidReason           String?
+  currencyId           String
+  currency             Currency         @relation(fields: [currencyId], references: [id])
+  currencyCode         String
+  amount               Decimal          @db.Decimal(14, 2)
+  exchangeRateToBase   Decimal          @db.Decimal(12, 6)
+  convertedAmountBase  Decimal          @db.Decimal(14, 2)
+  provider             String?
+  changeCurrencyCode   String?
+  changeAmount         Decimal          @default(0) @db.Decimal(14, 2)
+  paidAt               DateTime         @default(now())
 
   @@index([invoiceId])
   @@index([shiftId, method])
 }
 
 model ShiftExpense {
-  id             String          @id @default(cuid())
-  shiftId        String
-  shift          CashShift       @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  category       ExpenseCategory
-  amount         Decimal         @db.Decimal(14, 2)
-  currencyId     String
-  currency       Currency        @relation(fields: [currencyId], references: [id])
-  currencyCode   String
-  exchangeRateToBase Decimal     @db.Decimal(12, 6)
-  convertedAmountBase Decimal    @db.Decimal(14, 2)
-  reason         String
-  notes          String?
-  receiptUrl     String?
-  employeeId     String
-  employee       User            @relation(fields: [employeeId], references: [id])
-  createdAt      DateTime        @default(now())
-  cancelledAt    DateTime?
+  id                  String                @id @default(cuid())
+  shiftId             String
+  shift               CashShift             @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  category            ExpenseCategory
+  expenseCategoryId   String?
+  source              ExpenseSource         @default(CASH_REGISTER)
+  approvalStatus      ExpenseApprovalStatus @default(APPROVED)
+  approvedById        String?
+  approvalDate        DateTime?
+  rejectionReason     String?
+  reversalOfId        String?
+  supplierId          String?
+  supplier            Supplier?             @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  amount              Decimal               @db.Decimal(14, 2)
+  currencyId          String
+  currency            Currency              @relation(fields: [currencyId], references: [id])
+  currencyCode        String
+  exchangeRateToBase  Decimal               @db.Decimal(12, 6)
+  convertedAmountBase Decimal               @db.Decimal(14, 2)
+  reason              String
+  notes               String?
+  receiptUrl          String?
+  employeeId          String
+  employee            User                  @relation(fields: [employeeId], references: [id])
+  createdAt           DateTime              @default(now())
+  cancelledAt         DateTime?
 
   @@index([shiftId, createdAt])
+  @@index([approvalStatus, createdAt])
 }
 
 model ShiftReturn {
-  id             String        @id @default(cuid())
-  shiftId        String
-  shift          CashShift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  id                    String        @id @default(cuid())
+  shiftId               String
+  shift                 CashShift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   originalInvoiceNumber String
-  returnNumber   String        @unique
-  returnedItems  Json
-  amount         Decimal       @db.Decimal(14, 2)
-  currencyId     String
-  currency       Currency      @relation(fields: [currencyId], references: [id])
-  currencyCode   String
-  exchangeRateToBase Decimal   @db.Decimal(12, 6)
-  convertedAmountBase Decimal  @db.Decimal(14, 2)
-  refundMethod   PaymentMethod
-  reason         String
-  employeeId     String
-  employee       User          @relation(fields: [employeeId], references: [id])
-  createdAt      DateTime      @default(now())
+  returnNumber          String        @unique
+  returnedItems         Json
+  amount                Decimal       @db.Decimal(14, 2)
+  currencyId            String
+  currency              Currency      @relation(fields: [currencyId], references: [id])
+  currencyCode          String
+  exchangeRateToBase    Decimal       @db.Decimal(12, 6)
+  convertedAmountBase   Decimal       @db.Decimal(14, 2)
+  refundMethod          PaymentMethod
+  reason                String
+  employeeId            String
+  employee              User          @relation(fields: [employeeId], references: [id])
+  createdAt             DateTime      @default(now())
 
   @@index([shiftId, createdAt])
 }
 
 model ShiftDiscrepancy {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  currencyCode   String
-  expectedAmount Decimal  @db.Decimal(14, 2)
-  actualAmount   Decimal  @db.Decimal(14, 2)
-  differenceAmount Decimal @db.Decimal(14, 2)
-  differenceBase Decimal  @db.Decimal(14, 2)
-  note           String
-  createdAt      DateTime @default(now())
+  id               String    @id @default(cuid())
+  shiftId          String
+  shift            CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  currencyCode     String
+  expectedAmount   Decimal   @db.Decimal(14, 2)
+  actualAmount     Decimal   @db.Decimal(14, 2)
+  differenceAmount Decimal   @db.Decimal(14, 2)
+  differenceBase   Decimal   @db.Decimal(14, 2)
+  note             String
+  createdAt        DateTime  @default(now())
 
   @@index([shiftId])
 }
 
 model ShiftHandoverDiscrepancy {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  previousShiftId String?
-  currencyCode   String
-  carryoverAmount Decimal @db.Decimal(14, 2)
-  actualOpeningAmount Decimal @db.Decimal(14, 2)
-  differenceAmount Decimal @db.Decimal(14, 2)
+  id                      String    @id @default(cuid())
+  shiftId                 String
+  shift                   CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  previousShiftId         String?
+  currencyCode            String
+  carryoverAmount         Decimal   @db.Decimal(14, 2)
+  actualOpeningAmount     Decimal   @db.Decimal(14, 2)
+  differenceAmount        Decimal   @db.Decimal(14, 2)
   denominationDifferences Json?
-  note           String
-  createdAt      DateTime @default(now())
+  note                    String
+  createdAt               DateTime  @default(now())
 
   @@index([shiftId])
 }
 
 model KitchenOrder {
-  id            String             @id @default(cuid())
-  orderNumber   String             @unique
-  invoiceId     String             @unique
-  invoice       Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  branchId      String
-  cashierName   String
-  orderType     OrderType          @default(PICKUP)
-  status        KitchenOrderStatus @default(NEW)
-  showPrices    Boolean            @default(false)
-  items         Json
-  notes         String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id          String             @id @default(cuid())
+  orderNumber String             @unique
+  invoiceId   String             @unique
+  invoice     Invoice            @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  branchId    String
+  cashierName String
+  orderType   OrderType          @default(PICKUP)
+  status      KitchenOrderStatus @default(NEW)
+  showPrices  Boolean            @default(false)
+  items       Json
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@index([branchId, status])
 }
 
 model ShiftReport {
-  id             String   @id @default(cuid())
-  shiftId        String
-  shift          CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  reference      String   @unique
-  reportData     Json
-  pdfUrl         String?
-  generatedAt    DateTime @default(now())
-  generatedById  String?
+  id            String    @id @default(cuid())
+  shiftId       String
+  shift         CashShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  reference     String    @unique
+  reportData    Json
+  pdfUrl        String?
+  generatedAt   DateTime  @default(now())
+  generatedById String?
 
   @@index([shiftId])
 }
 
 model CashNotification {
-  id        String    @id @default(cuid())
+  id        String     @id @default(cuid())
   shiftId   String?
   shift     CashShift? @relation(fields: [shiftId], references: [id], onDelete: Cascade)
   userId    String?
-  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   type      String
   title     String
   message   String
   metadata  Json?
   readAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime   @default(now())
 
   @@index([userId, readAt])
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String
-  entityType String
-  entityId   String?
-  metadata   Json?
-  previousData Json?
-  newData    Json?
-  ipAddress  String?
-  deviceInfo String?
-  createdAt  DateTime @default(now())
+  id                String   @id @default(cuid())
+  userId            String?
+  branchId          String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action            String
+  entityType        String
+  entityId          String?
+  metadata          Json?
+  previousData      Json?
+  newData           Json?
+  ipAddress         String?
+  deviceInfo        String?
+  reason            String?
+  approvalReference String?
+  requestId         String?
+  createdAt         DateTime @default(now())
 
   @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Supplier {
+  id                String             @id @default(cuid())
+  name              String
+  contactPerson     String?
+  phone             String?
+  email             String?
+  address           String?
+  taxNumber         String?
+  notes             String?
+  currentBalance    Decimal            @default(0) @db.Decimal(14, 2)
+  active            Boolean            @default(true)
+  deletedAt         DateTime?
+  deletedBy         String?
+  purchases         PurchaseInvoice[]
+  payments          SupplierPayment[]
+  returns           PurchaseReturn[]
+  operatingExpenses OperatingExpense[]
+  shiftExpenses     ShiftExpense[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([active, name])
+}
+
+model PurchaseInvoice {
+  id                 String                @id @default(cuid())
+  internalNumber     String                @unique
+  officialNumber     String
+  supplierId         String
+  supplier           Supplier              @relation(fields: [supplierId], references: [id])
+  branchId           String
+  branch             Branch                @relation(fields: [branchId], references: [id])
+  purchaseDate       DateTime
+  dueDate            DateTime?
+  currencyCode       String
+  exchangeRateToBase Decimal               @db.Decimal(12, 6)
+  subtotal           Decimal               @default(0) @db.Decimal(14, 2)
+  discount           Decimal               @default(0) @db.Decimal(14, 2)
+  tax                Decimal               @default(0) @db.Decimal(14, 2)
+  additionalCosts    Decimal               @default(0) @db.Decimal(14, 2)
+  total              Decimal               @default(0) @db.Decimal(14, 2)
+  paidAmount         Decimal               @default(0) @db.Decimal(14, 2)
+  remainingAmount    Decimal               @default(0) @db.Decimal(14, 2)
+  status             PurchaseInvoiceStatus @default(DRAFT)
+  notes              String?
+  attachmentUrl      String?
+  createdById        String
+  createdBy          User                  @relation(fields: [createdById], references: [id])
+  items              PurchaseInvoiceItem[]
+  payments           SupplierPayment[]
+  returns            PurchaseReturn[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([supplierId])
+  @@index([branchId])
+  @@index([status])
+  @@index([purchaseDate])
+  @@index([dueDate])
+}
+
+model PurchaseInvoiceItem {
+  id                String               @id @default(cuid())
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice      @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  productId         String?
+  product           Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+  itemNameSnapshot  String
+  quantity          Decimal              @db.Decimal(14, 4)
+  unit              String
+  unitPurchasePrice Decimal              @db.Decimal(14, 4)
+  discount          Decimal              @default(0) @db.Decimal(14, 2)
+  tax               Decimal              @default(0) @db.Decimal(14, 2)
+  total             Decimal              @db.Decimal(14, 2)
+  batchNumber       String?
+  expirationDate    DateTime?
+  returnedQuantity  Decimal              @default(0) @db.Decimal(14, 4)
+  returnItems       PurchaseReturnItem[]
+}
+
+model SupplierPayment {
+  id                 String                @id @default(cuid())
+  supplierId         String
+  supplier           Supplier              @relation(fields: [supplierId], references: [id])
+  purchaseInvoiceId  String?
+  purchaseInvoice    PurchaseInvoice?      @relation(fields: [purchaseInvoiceId], references: [id], onDelete: SetNull)
+  branchId           String
+  branch             Branch                @relation(fields: [branchId], references: [id])
+  amount             Decimal               @db.Decimal(14, 2)
+  currencyCode       String
+  exchangeRateToBase Decimal               @db.Decimal(12, 6)
+  source             PaymentSource
+  method             SupplierPaymentMethod
+  accountName        String?
+  referenceNumber    String?
+  paymentDate        DateTime
+  notes              String?
+  attachmentUrl      String?
+  createdById        String
+  createdBy          User                  @relation(fields: [createdById], references: [id])
+  createdAt          DateTime              @default(now())
+
+  @@index([supplierId])
+  @@index([paymentDate])
+}
+
+model PurchaseReturn {
+  id                String                @id @default(cuid())
+  supplierId        String
+  supplier          Supplier              @relation(fields: [supplierId], references: [id])
+  purchaseInvoiceId String
+  purchaseInvoice   PurchaseInvoice       @relation(fields: [purchaseInvoiceId], references: [id])
+  reason            String
+  returnDate        DateTime
+  refundMethod      SupplierPaymentMethod
+  refundAmount      Decimal               @default(0) @db.Decimal(14, 2)
+  createdById       String
+  createdBy         User                  @relation(fields: [createdById], references: [id])
+  approvedById      String?
+  status            PurchaseReturnStatus  @default(DRAFT)
+  items             PurchaseReturnItem[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+}
+
+model PurchaseReturnItem {
+  id                    String              @id @default(cuid())
+  purchaseReturnId      String
+  purchaseReturn        PurchaseReturn      @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+  purchaseInvoiceItemId String
+  purchaseInvoiceItem   PurchaseInvoiceItem @relation(fields: [purchaseInvoiceItemId], references: [id])
+  quantity              Decimal             @db.Decimal(14, 4)
+  unitCost              Decimal             @db.Decimal(14, 4)
+  reason                String?
+}
+
+model PurchasePriceHistory {
+  id                 String   @id @default(cuid())
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id])
+  purchaseInvoiceId  String?
+  unitCost           Decimal  @db.Decimal(14, 4)
+  currencyCode       String
+  exchangeRateToBase Decimal  @db.Decimal(12, 6)
+  createdAt          DateTime @default(now())
+
+  @@index([productId, createdAt])
+}
+
+model InventoryMovement {
+  id            String   @id @default(cuid())
+  productId     String?
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id])
+  quantity      Decimal  @db.Decimal(14, 4)
+  unit          String
+  movementType  String
+  referenceType String
+  referenceId   String
+  notes         String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model CashAdjustment {
+  id           String             @id @default(cuid())
+  shiftId      String
+  shift        CashShift          @relation(fields: [shiftId], references: [id])
+  type         CashAdjustmentType
+  amount       Decimal            @db.Decimal(14, 2)
+  currencyCode String
+  reason       String
+  createdById  String
+  approvedById String?
+  beforeValue  Json
+  afterValue   Json
+  createdAt    DateTime           @default(now())
+
+  @@index([shiftId, createdAt])
+}
+
+model InvoiceSequence {
+  id         String   @id @default(cuid())
+  branchId   String
+  registerId String
+  year       Int
+  lastNumber Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([branchId, registerId, year])
 }
