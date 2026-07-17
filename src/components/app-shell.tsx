@@ -20,6 +20,7 @@ import {
   Coins,
   ShoppingBasket,
   ChartNoAxesCombined,
+  Banknote,
 } from "lucide-react";
 import { useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -30,6 +31,7 @@ const nav: { href: string; label: TranslationKey; icon: typeof Gauge }[] = [
   { href: "/admin", label: "dashboard", icon: Gauge },
   { href: "/admin/reports", label: "reports", icon: BarChart3 },
   { href: "/admin/finance", label: "finance", icon: WalletCards },
+  { href: "/admin/cash", label: "finance", icon: Banknote },
   { href: "/admin/products", label: "products", icon: Boxes },
   { href: "/admin/categories", label: "categories", icon: Tags },
   { href: "/admin/discounts", label: "discounts", icon: CirclePercent },

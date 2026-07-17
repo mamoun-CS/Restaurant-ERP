@@ -9,7 +9,7 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useLanguage(); const router = useRouter();
   const [email, setEmail] = useState("admin@noura.test"); const [password, setPassword] = useState("Demo123!");
   const [show, setShow] = useState(false); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
-  async function submit(e: React.FormEvent) { e.preventDefault(); setLoading(true); setError(""); const res = await fetch("/api/auth/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) }); const data = await res.json(); setLoading(false); if (!res.ok) return setError(data.error); router.push(data.role === "ADMIN" ? "/admin" : "/pos"); router.refresh(); }
+  async function submit(e: React.FormEvent) { e.preventDefault(); setLoading(true); setError(""); const res = await fetch("/api/auth/login", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email,password}) }); const data = await res.json(); setLoading(false); if (!res.ok) return setError(data.error); router.push(data.redirectTo || (data.role === "ADMIN" ? "/admin" : "/cash")); router.refresh(); }
   return <main className="min-h-screen grid lg:grid-cols-[1.05fr_.95fr] bg-surface">
     <section className="hidden lg:flex relative overflow-hidden bg-sidebar text-white p-14 flex-col justify-between">
       <div className="absolute inset-x-0 top-0 h-px bg-accent/60"/><div className="absolute end-0 top-0 h-full w-1/3 border-s border-white/10 bg-[linear-gradient(180deg,rgba(255,138,31,.15),transparent)]"/>

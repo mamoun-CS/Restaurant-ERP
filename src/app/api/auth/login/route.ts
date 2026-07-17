@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if ("active" in user && !user.active) return NextResponse.json({ error: "Account is inactive" }, { status: 403 });
   const session = { userId:"id" in user?user.id:user.userId, name:user.name, email:user.email, role:user.role, branchId:user.branchId ?? "" };
   const token = await createToken(session);
-  const response = NextResponse.json({ role: user.role });
+  const response = NextResponse.json({ role: user.role, redirectTo: user.role === "ADMIN" ? "/admin" : "/cash" });
   response.cookies.set("erp_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 8, path: "/" });
   return response;
 }
