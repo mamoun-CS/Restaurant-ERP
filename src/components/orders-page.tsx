@@ -22,6 +22,7 @@ type Locale = "en" | "ar";
 type RawRecord = Record<string, unknown>;
 type OrderStatus = "PENDING" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED" | "DONE";
 type PaymentKind = "CASH" | "CARD" | "SPLIT" | "OTHER";
+type DeliveryKind = "DINE_IN" | "TAKEAWAY" | "DELIVERY" | "OTHER";
 
 type OrderRow = {
   id: string;
@@ -31,6 +32,8 @@ type OrderRow = {
   itemsCount: number;
   total: number;
   payment: PaymentKind;
+  delivery: DeliveryKind;
+  notes: string;
   status: OrderStatus;
   sourceStatus: string;
   canModify: boolean;
@@ -50,6 +53,9 @@ const copy = {
     orderNumber: "Order number",
     customer: "Customer name",
     payment: "Payment type",
+    deliveryMethod: "Delivery",
+    notes: "Notes",
+    noNotes: "No notes",
     allPayments: "All payments",
     future: "Future",
     time: "Time",
@@ -88,6 +94,9 @@ const copy = {
     card: "Visa/Card",
     split: "Split payment",
     other: "Other",
+    dineIn: "Dine-in",
+    takeaway: "Takeaway",
+    delivery: "Delivery",
   },
   ar: {
     back: "العودة إلى نقطة البيع",
@@ -102,6 +111,9 @@ const copy = {
     orderNumber: "رقم الطلب",
     customer: "اسم الزبون",
     payment: "طريقة الدفع",
+    deliveryMethod: "التسليم",
+    notes: "ملاحظات",
+    noNotes: "لا توجد ملاحظات",
     allPayments: "كل طرق الدفع",
     future: "لاحقا",
     time: "الوقت",
@@ -140,6 +152,9 @@ const copy = {
     card: "فيزا/بطاقة",
     split: "دفع مقسم",
     other: "أخرى",
+    dineIn: "داخل المطعم",
+    takeaway: "سفري",
+    delivery: "توصيل",
   },
 } satisfies Record<Locale, Record<string, string>>;
 
@@ -297,7 +312,7 @@ export default function OrdersPage() {
           <>
             <section className="card overflow-hidden mobile-hidden-table">
               <div className="table-scroll">
-                <table className="w-full min-w-[1080px] text-sm">
+                <table className="w-full min-w-[1260px] text-sm">
                   <thead className="bg-background text-xs uppercase tracking-[.04em] text-muted">
                     <tr>
                       <th className="p-3 text-start">{c.orderNumber}</th>
@@ -306,6 +321,8 @@ export default function OrdersPage() {
                       <th className="p-3 text-start">{c.items}</th>
                       <th className="p-3 text-start">{c.total}</th>
                       <th className="p-3 text-start">{c.payment}</th>
+                      <th className="p-3 text-start">{c.deliveryMethod}</th>
+                      <th className="p-3 text-start">{c.notes}</th>
                       <th className="p-3 text-start">{c.status}</th>
                       <th className="p-3 text-end">{c.actions}</th>
                     </tr>
@@ -319,6 +336,8 @@ export default function OrdersPage() {
                         <td className="p-3 amount">{order.itemsCount}</td>
                         <td className="p-3 amount font-bold">₪ {order.total.toFixed(2)}</td>
                         <td className="p-3">{paymentLabel(order.payment, c)}</td>
+                        <td className="p-3">{deliveryLabel(order.delivery, c)}</td>
+                        <td className="p-3 max-w-[180px] truncate" title={order.notes || c.noNotes}>{order.notes || c.noNotes}</td>
                         <td className="p-3"><OrderBadge status={order.status} label={statusLabel(order.status, c)} /></td>
                         <td className="p-3"><ActionBar order={order} labels={c} onDelete={() => setDeleteTarget(order)} /></td>
                       </tr>
@@ -342,6 +361,10 @@ export default function OrdersPage() {
                     <div><dt className="text-xs text-muted">{c.items}</dt><dd className="mt-1 font-bold">{order.itemsCount}</dd></div>
                     <div><dt className="text-xs text-muted">{c.payment}</dt><dd className="mt-1 font-bold">{paymentLabel(order.payment, c)}</dd></div>
                     <div><dt className="text-xs text-muted">{c.total}</dt><dd className="mt-1 font-bold">₪ {order.total.toFixed(2)}</dd></div>
+                  </dl>
+                  <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div><dt className="text-xs text-muted">{c.deliveryMethod}</dt><dd className="mt-1 font-bold">{deliveryLabel(order.delivery, c)}</dd></div>
+                    <div><dt className="text-xs text-muted">{c.notes}</dt><dd className="mt-1 font-bold">{order.notes || c.noNotes}</dd></div>
                   </dl>
                   <div className="mt-4"><ActionBar order={order} labels={c} onDelete={() => setDeleteTarget(order)} /></div>
                 </article>
@@ -394,6 +417,8 @@ function normalizeOrder(raw: RawRecord): OrderRow {
     itemsCount: countItems(raw),
     total: readNumber(raw, "totalAmount") ?? readNumber(raw, "total") ?? readNumber(readRecord(raw, "payment"), "amount") ?? 0,
     payment: normalizePayment(raw),
+    delivery: normalizeDelivery(raw),
+    notes: readString(raw, "customerNotes") || readString(kitchenOrder, "notes"),
     status,
     sourceStatus,
     canModify: typeof createdMs === "number" && Date.now() - createdMs <= 5 * 60 * 1000 && !lockedStatuses.has(status),
@@ -421,6 +446,14 @@ function normalizePayment(raw: RawRecord): PaymentKind {
   const method = (readString(raw, "paymentMethod") || readString(readRecord(raw, "payment"), "method") || readString(isRecord(payments?.[0]) ? payments[0] : undefined, "method")).toUpperCase();
   if (method === "CASH") return "CASH";
   if (method === "CREDIT_CARD" || method === "CARD" || method === "VISA") return "CARD";
+  return "OTHER";
+}
+
+function normalizeDelivery(raw: RawRecord): DeliveryKind {
+  const value = readString(raw, "orderType").toUpperCase();
+  if (value === "DINE_IN") return "DINE_IN";
+  if (value === "TAKEAWAY" || value === "PICKUP") return "TAKEAWAY";
+  if (value === "DELIVERY") return "DELIVERY";
   return "OTHER";
 }
 
@@ -492,6 +525,13 @@ function paymentLabel(payment: PaymentKind, c: (typeof copy)["en"]) {
   if (payment === "CASH") return c.cash;
   if (payment === "CARD") return c.card;
   if (payment === "SPLIT") return c.split;
+  return c.other;
+}
+
+function deliveryLabel(delivery: DeliveryKind, c: (typeof copy)["en"]) {
+  if (delivery === "DINE_IN") return c.dineIn || "Dine-in";
+  if (delivery === "TAKEAWAY") return c.takeaway || "Takeaway";
+  if (delivery === "DELIVERY") return c.delivery || "Delivery";
   return c.other;
 }
 

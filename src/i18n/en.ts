@@ -107,6 +107,13 @@ export const en = {
   confirmOrderMessage: "Are you sure you want to send this order to the kitchen?",
   cancel: "Cancel",
   paymentMethod: "Payment method",
+  deliveryMethod: "Delivery method",
+  dineIn: "Dine-in",
+  takeaway: "Takeaway",
+  delivery: "Delivery",
+  orderNotes: "Order notes",
+  orderNotesPlaceholder: "Add any special instructions for the kitchen or delivery driver...",
+  noNotes: "No notes",
   cash: "Cash",
   cardPayment: "Visa / Card",
   splitPayment: "Split Payment",
@@ -123,5 +130,7 @@ export const en = {
   duplicateOrder: "Duplicate Order",
   cancelOrder: "Cancel Order",
   editOrder: "Edit Order",
+  customerName: "Customer name",
+  phone: "Phone",
 };
 export type TranslationKey = keyof typeof en;

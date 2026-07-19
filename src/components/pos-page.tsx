@@ -40,6 +40,7 @@ type InvoiceItemPayload = {
   addons?: { nameSnapshot?: string; priceSnapshot?: string | number }[];
 };
 type PaymentChoice = "CASH" | "CREDIT_CARD";
+type DeliveryMethod = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
 export default function PosPage() {
   const { t, locale, setLocale } = useLanguage();
   const [category, setCategory] = useState("All");
@@ -50,8 +51,12 @@ export default function PosPage() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentChoice>("CASH");
+  const [deliveryMethod, setDeliveryMethod] =
+    useState<DeliveryMethod>("TAKEAWAY");
+  const [orderNotes, setOrderNotes] = useState("");
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
+  const [customer, setCustomer] = useState({ name: "", phone: "" });
   const cats = ["All", ...new Set(products.map((p) => p.category))];
   const filtered = products.filter(
     (p) =>
@@ -103,22 +108,46 @@ export default function PosPage() {
     fetch(`/api/invoices/${encodeURIComponent(edit)}`)
       .then(async (response) => {
         const data = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(data?.message || data?.error || t("checkoutFailed"));
+        if (!response.ok)
+          throw new Error(data?.message || data?.error || t("checkoutFailed"));
         const rows = Array.isArray(data.items) ? data.items : [];
-        setCart(rows.map((row: InvoiceItemPayload, index: number) => {
-          const product = productFromInvoiceItem(row);
-          return {
-            key: `${row.id || product.id}-${index}`,
-            product,
-            quantity: Number(row.quantity || 1),
-            size: row.selectedSizeSnapshot ? { nameEn: row.selectedSizeSnapshot, nameAr: row.selectedSizeSnapshot, delta: 0 } : undefined,
-            addons: Array.isArray(row.addons) ? row.addons.map((addon) => ({ nameEn: String(addon.nameSnapshot || ""), nameAr: String(addon.nameSnapshot || ""), price: Number(addon.priceSnapshot || 0) })) : [],
-          };
-        }));
-        const method = data.paymentMethod === "CREDIT_CARD" ? "CREDIT_CARD" : "CASH";
+        setCart(
+          rows.map((row: InvoiceItemPayload, index: number) => {
+            const product = productFromInvoiceItem(row);
+            return {
+              key: `${row.id || product.id}-${index}`,
+              product,
+              quantity: Number(row.quantity || 1),
+              size: row.selectedSizeSnapshot
+                ? {
+                    nameEn: row.selectedSizeSnapshot,
+                    nameAr: row.selectedSizeSnapshot,
+                    delta: 0,
+                  }
+                : undefined,
+              addons: Array.isArray(row.addons)
+                ? row.addons.map((addon) => ({
+                    nameEn: String(addon.nameSnapshot || ""),
+                    nameAr: String(addon.nameSnapshot || ""),
+                    price: Number(addon.priceSnapshot || 0),
+                  }))
+                : [],
+            };
+          }),
+        );
+        const method =
+          data.paymentMethod === "CREDIT_CARD" ? "CREDIT_CARD" : "CASH";
         setPaymentMethod(method);
+        setDeliveryMethod(normalizeDeliveryMethod(data.orderType));
+        setOrderNotes(data.customerNotes || "");
+        setCustomer({
+          name: data.customerName || "",
+          phone: data.customerPhone || "",
+        });
       })
-      .catch((error) => alert(error instanceof Error ? error.message : t("checkoutFailed")))
+      .catch((error) =>
+        alert(error instanceof Error ? error.message : t("checkoutFailed")),
+      )
       .finally(() => setLoadingOrder(false));
   }, [t]);
   function startCheckout() {
@@ -130,7 +159,12 @@ export default function PosPage() {
     setCheckingOut(true);
     try {
       const payload = {
-        orderType: "PICKUP",
+        orderType: deliveryMethod,
+        clientTransactionId: editingInvoiceId || crypto.randomUUID(),
+        idempotencyKey: editingInvoiceId || crypto.randomUUID(),
+        customerName: customer.name || undefined,
+        customerPhone: customer.phone || undefined,
+        customerNotes: orderNotes.trim() || undefined,
         items: cart.map((x) => ({
           productId: x.product.id,
           categoryId: x.product.category,
@@ -159,11 +193,16 @@ export default function PosPage() {
           },
         ],
       };
-      const res = await fetch(editingInvoiceId ? `/api/invoices/${encodeURIComponent(editingInvoiceId)}` : "/api/invoices", {
-        method: editingInvoiceId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        editingInvoiceId
+          ? `/api/invoices/${encodeURIComponent(editingInvoiceId)}`
+          : "/api/invoices",
+        {
+          method: editingInvoiceId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       const text = await res.text();
       const data = text ? JSON.parse(text) : null;
       if (!res.ok) {
@@ -284,13 +323,27 @@ export default function PosPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-xl font-bold">
-                  {editingInvoiceId ? `${t("editOrder")} #${editingInvoiceId}` : category === "All" ? t("products") : category}
+                  {editingInvoiceId
+                    ? `${t("editOrder")} #${editingInvoiceId}`
+                    : category === "All"
+                      ? t("products")
+                      : category}
                 </h1>
                 <p className="text-xs text-muted mt-1">
-                  {loadingOrder ? t("processing") : `${filtered.length} ${t("items")}`}
+                  {loadingOrder
+                    ? t("processing")
+                    : `${filtered.length} ${t("items")}`}
                 </p>
               </div>
-              <button className="text-sm text-primary font-bold" onClick={() => { setEditingInvoiceId(null); setCart([]); window.history.replaceState(null, "", "/pos"); }}>
+              <button
+                className="text-sm text-primary font-bold"
+                onClick={() => {
+                  setEditingInvoiceId(null);
+                  setCart([]);
+                  setCustomer({ name: "", phone: "" });
+                  window.history.replaceState(null, "", "/pos");
+                }}
+              >
                 {editingInvoiceId ? t("newOrder") : t("newOrder")}
               </button>
             </div>
@@ -383,6 +436,12 @@ export default function PosPage() {
           total={total}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
+          deliveryMethod={deliveryMethod}
+          setDeliveryMethod={setDeliveryMethod}
+          orderNotes={orderNotes}
+          setOrderNotes={setOrderNotes}
+          customer={customer}
+          setCustomer={setCustomer}
           loading={checkingOut}
           onClose={() => setConfirming(false)}
           onConfirm={checkout}
@@ -533,7 +592,13 @@ function CartPanel({
           onClick={checkout}
           className="btn-primary w-full mt-4 disabled:opacity-40 flex items-center justify-between px-5"
         >
-          <span>{checkingOut ? t("processing") : editing ? t("save") : t("checkout")}</span>
+          <span>
+            {checkingOut
+              ? t("processing")
+              : editing
+                ? t("save")
+                : t("checkout")}
+          </span>
           <span>₪ {total.toFixed(2)}</span>
         </button>
         <p className="text-center text-[11px] text-muted mt-2">
@@ -546,7 +611,12 @@ function CartPanel({
 
 function productFromInvoiceItem(row: InvoiceItemPayload): Product {
   const name = row.productNameSnapshot || "Edited item";
-  const found = products.find((product) => product.id === row.productId || product.nameEn === name || product.nameAr === name);
+  const found = products.find(
+    (product) =>
+      product.id === row.productId ||
+      product.nameEn === name ||
+      product.nameAr === name,
+  );
   if (found) return { ...found, price: Number(row.unitPrice ?? found.price) };
   return {
     id: row.productId || `edited-${row.id || name}`,
@@ -565,10 +635,30 @@ function productFromInvoiceItem(row: InvoiceItemPayload): Product {
   };
 }
 
+function normalizeDeliveryMethod(value: unknown): DeliveryMethod {
+  if (value === "DINE_IN" || value === "DELIVERY") return value;
+  return "TAKEAWAY";
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-muted">{label}</span>
+      <b className="text-end break-words">{value}</b>
+    </div>
+  );
+}
+
 function CheckoutConfirmDialog({
   total,
   paymentMethod,
   setPaymentMethod,
+  deliveryMethod,
+  setDeliveryMethod,
+  orderNotes,
+  setOrderNotes,
+  customer,
+  setCustomer,
   loading,
   onClose,
   onConfirm,
@@ -576,11 +666,22 @@ function CheckoutConfirmDialog({
   total: number;
   paymentMethod: PaymentChoice;
   setPaymentMethod: (value: PaymentChoice) => void;
+  deliveryMethod: DeliveryMethod;
+  setDeliveryMethod: (value: DeliveryMethod) => void;
+  orderNotes: string;
+  setOrderNotes: (value: string) => void;
+  customer: { name: string; phone: string };
+  setCustomer: (value: { name: string; phone: string }) => void;
   loading: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   const { t } = useLanguage();
+  const deliveryOptions: { value: DeliveryMethod; label: string }[] = [
+    { value: "DINE_IN", label: t("dineIn") },
+    { value: "TAKEAWAY", label: t("takeaway") },
+    { value: "DELIVERY", label: t("delivery") },
+  ];
   return (
     <div
       className="fixed inset-0 z-[70] bg-text/50 grid place-items-center p-4"
@@ -589,10 +690,10 @@ function CheckoutConfirmDialog({
       <section
         role="dialog"
         aria-modal="true"
-        className="card w-full max-w-md p-5 shadow-2xl"
+        className="card w-full max-w-md max-h-[90vh] overflow-y-auto p-5 shadow-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3 ">
           <span className="size-11 rounded-xl bg-primary-soft text-primary grid place-items-center">
             <ShoppingBag size={20} />
           </span>
@@ -611,6 +712,34 @@ function CheckoutConfirmDialog({
           </button>
         </div>
         <div className="mt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+            <input
+              className="input"
+              value={customer.name}
+              onChange={(event) =>
+                setCustomer({ ...customer, name: event.target.value })
+              }
+              placeholder={t("customerName")}
+            />
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              className="input"
+              value={customer.phone}
+              onChange={(event) => {
+                const phone = event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 10);
+
+                setCustomer({
+                  ...customer,
+                  phone,
+                });
+              }}
+              placeholder={t("phone")}
+            />
+          </div>
           <p className="text-xs font-bold mb-2">{t("paymentMethod")}</p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -637,16 +766,68 @@ function CheckoutConfirmDialog({
           >
             {t("splitPayment")}
           </button>
+          <p className="text-xs font-bold mb-2 mt-4">{t("deliveryMethod")}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {deliveryOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setDeliveryMethod(option.value)}
+                className={`min-h-12 rounded-xl border px-2 text-sm font-bold ${deliveryMethod === option.value ? "border-primary bg-primary-soft text-primary" : "border-border"}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <label className="mt-4 block">
+            <span className="text-xs font-bold mb-2 block">
+              {t("orderNotes")}
+            </span>
+            <textarea
+              className="input min-h-24 resize-none py-3"
+              value={orderNotes}
+              onChange={(event) => setOrderNotes(event.target.value)}
+              placeholder={t("orderNotesPlaceholder")}
+            />
+          </label>
         </div>
-        <div className="mt-5 rounded-xl bg-background p-4 flex justify-between">
-          <span className="text-muted">{t("total")}</span>
-          <b>₪ {total.toFixed(2)}</b>
+        <div className="mt-5 rounded-xl bg-background p-4 text-sm space-y-2">
+          <SummaryRow label={t("customerName")} value={customer.name || "-"} />
+          <SummaryRow
+            label={t("payment")}
+            value={
+              paymentMethod === "CREDIT_CARD" ? t("cardPayment") : t("cash")
+            }
+          />
+          <SummaryRow
+            label={t("deliveryMethod")}
+            value={
+              deliveryOptions.find((option) => option.value === deliveryMethod)
+                ?.label || "-"
+            }
+          />
+          <SummaryRow
+            label={t("orderNotes")}
+            value={orderNotes.trim() || t("noNotes")}
+          />
+          <div className="flex justify-between border-t border-dashed border-border pt-2 text-base">
+            <span className="text-muted">{t("total")}</span>
+            <b>₪ {total.toFixed(2)}</b>
+          </div>
         </div>
         <div className="mt-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-          <button className="btn-secondary" disabled={loading} onClick={onClose}>
+          <button
+            className="btn-secondary"
+            disabled={loading}
+            onClick={onClose}
+          >
             {t("cancel")}
           </button>
-          <button className="btn-primary" disabled={loading} onClick={onConfirm}>
+          <button
+            className="btn-primary"
+            disabled={loading}
+            onClick={onConfirm}
+          >
             {loading ? t("processing") : t("confirmOrder")}
           </button>
         </div>

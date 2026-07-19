@@ -59,9 +59,33 @@ export function assertSameOrigin(request: Request) {
   const url = new URL(request.url);
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
-  if (origin && origin !== url.origin) return apiError("INVALID_CSRF_TOKEN", "Invalid request origin.", 403);
-  if (!origin && referer && new URL(referer).origin !== url.origin) return apiError("INVALID_CSRF_TOKEN", "Invalid request origin.", 403);
+  const allowedOrigins = getAllowedOrigins(url.origin);
+  if (origin && !allowedOrigins.has(origin)) return apiError("INVALID_CSRF_TOKEN", "Invalid request origin.", 403);
+  if (!origin && referer && !allowedOrigins.has(new URL(referer).origin)) return apiError("INVALID_CSRF_TOKEN", "Invalid request origin.", 403);
   return null;
+}
+
+function getAllowedOrigins(requestOrigin: string) {
+  const origins = new Set([requestOrigin]);
+  for (const value of [process.env.APP_URL, process.env.NEXT_PUBLIC_APP_URL, process.env.ALLOWED_ORIGINS]) {
+    for (const origin of parseOrigins(value)) origins.add(origin);
+  }
+  return origins;
+}
+
+function parseOrigins(value: string | undefined) {
+  return (value || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => {
+      try {
+        return new URL(origin).origin;
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean);
 }
 
 const buckets = new Map<string, { count: number; resetAt: number }>();

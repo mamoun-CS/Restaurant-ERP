@@ -41,37 +41,16 @@ type Summary = {
     expenseDate: string;
   }[];
 };
-const fallback: Summary = {
+const emptySummary: Summary = {
   totals: {
-    revenue: 8642.25,
-    cogs: 3184.4,
-    operatingExpenses: 2260,
-    grossProfit: 5457.85,
-    netProfit: 3197.85,
+    revenue: 0,
+    cogs: 0,
+    operatingExpenses: 0,
+    grossProfit: 0,
+    netProfit: 0,
   },
-  byDay: [
-    { period: "2026-07-01", revenue: 980, cogs: 360, netProfit: 420 },
-    { period: "2026-07-02", revenue: 1210, cogs: 430, netProfit: 650 },
-    { period: "2026-07-03", revenue: 1480, cogs: 540, netProfit: 520 },
-    { period: "2026-07-04", revenue: 1330, cogs: 480, netProfit: 690 },
-    { period: "2026-07-05", revenue: 1690, cogs: 620, netProfit: 810 },
-  ],
-  expenses: [
-    {
-      id: "1",
-      title: "Monthly rent",
-      category: "RENT",
-      amount: 1200,
-      expenseDate: "2026-07-01",
-    },
-    {
-      id: "2",
-      title: "Electricity",
-      category: "ELECTRICITY",
-      amount: 420,
-      expenseDate: "2026-07-03",
-    },
-  ],
+  byDay: [],
+  expenses: [],
 };
 const copy = {
   en: {
@@ -97,6 +76,7 @@ const copy = {
     from: "From",
     to: "To",
     empty: "No financial transactions in this period.",
+    loadError: "Could not load financial data from the database.",
   },
   ar: {
     title: "النظرة المالية",
@@ -121,20 +101,48 @@ const copy = {
     from: "من",
     to: "إلى",
     empty: "لا توجد حركات مالية في هذه الفترة.",
+    loadError: "تعذر تحميل البيانات المالية من قاعدة البيانات.",
   },
 };
+function defaultRange() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: now.toISOString().slice(0, 10),
+  };
+}
 export default function FinancePage() {
   const { locale } = useLanguage();
   const c = copy[locale];
-  const [data, setData] = useState(fallback);
-  const [from, setFrom] = useState("2026-07-01"),
-    [to, setTo] = useState("2026-07-31");
+  const initialRange = defaultRange();
+  const [data, setData] = useState(emptySummary);
+  const [error, setError] = useState("");
+  const [from, setFrom] = useState(initialRange.from),
+    [to, setTo] = useState(initialRange.to);
   useEffect(() => {
-    fetch(`/api/finance/summary?from=${from}&to=${to}`)
-      .then((r) => (r.ok ? r.json() : fallback))
-      .then(setData)
-      .catch(() => setData(fallback));
-  }, [from, to]);
+    let cancelled = false;
+    fetch(`/api/finance/summary?from=${from}&to=${to}`, { cache: "no-store" })
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => null))?.error || c.loadError);
+        return r.json() as Promise<Summary>;
+      })
+      .then((summary) => {
+        if (!cancelled) {
+          setData(summary);
+          setError("");
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setData(emptySummary);
+          setError(err instanceof Error ? err.message : c.loadError);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [c.loadError, from, to]);
   const kpis = [
     { label: c.revenue, value: data.totals.revenue, icon: WalletCards },
     { label: c.cogs, value: data.totals.cogs, icon: ShoppingBasket },
@@ -182,6 +190,7 @@ export default function FinancePage() {
           <CalendarDays size={20} />
         </span>
       </section>
+      {error && <div className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">{error}</div>}
       <section className="finance-kpis">
         {kpis.map(({ label, value, icon: Icon }, i) => (
           <article

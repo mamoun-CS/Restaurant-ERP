@@ -50,7 +50,7 @@ export async function recalculateProductsUsingIngredient(ingredientId: string) {
 
 export async function getFinancialSummary(searchParams: URLSearchParams) {
   const { from, to } = parseRange(searchParams);
-  const invoiceWhere = { createdAt: { gte: from, lte: to }, status: "COMPLETED" as const };
+  const invoiceWhere: Prisma.InvoiceWhereInput = { createdAt: { gte: from, lte: to }, status: { in: ["PAID", "COMPLETED"] } };
   const expenseWhere = { expenseDate: { gte: from, lte: to }, active: true };
   const [invoices, expenses, products] = await Promise.all([
     db.invoice.findMany({
@@ -65,7 +65,11 @@ export async function getFinancialSummary(searchParams: URLSearchParams) {
     db.product.findMany({ include: { translations: true, category: true, ingredients: { include: { ingredient: true } } } }),
   ]);
 
-  const revenue = money(invoices.reduce((sum, invoice) => sum + toNumber(invoice.totalAmount), 0));
+  const invoiceRevenue = (invoice: { grandTotal?: Prisma.Decimal | number | string | null; totalAmount?: Prisma.Decimal | number | string | null }) => {
+    const grandTotal = toNumber(invoice.grandTotal);
+    return grandTotal > 0 ? grandTotal : toNumber(invoice.totalAmount);
+  };
+  const revenue = money(invoices.reduce((sum, invoice) => sum + invoiceRevenue(invoice), 0));
   const cogs = money(invoices.reduce((sum, invoice) => sum + invoice.items.reduce((itemSum, item) => itemSum + toNumber(item.totalCostSnapshot), 0), 0));
   const grossProfit = money(revenue - cogs);
   const operatingExpenses = money(expenses.reduce((sum, expense) => sum + toNumber(expense.amount), 0));
@@ -80,8 +84,11 @@ export async function getFinancialSummary(searchParams: URLSearchParams) {
     const day = invoice.createdAt.toISOString().slice(0, 10);
     const dayRow = byDay.get(day) || { period: day, revenue: 0, cogs: 0, grossProfit: 0, netProfit: 0 };
     const employeeRow = byEmployee.get(invoice.cashierId) || { name: invoice.cashier.name, revenue: 0, cogs: 0, grossProfit: 0 };
+    const totalItemRevenue = invoice.items.reduce((sum, item) => sum + toNumber(item.totalPrice), 0);
+    const invoiceTotal = invoiceRevenue(invoice);
     for (const item of invoice.items) {
-      const itemRevenue = toNumber(item.totalPrice);
+      const itemBaseRevenue = toNumber(item.totalPrice);
+      const itemRevenue = totalItemRevenue > 0 ? itemBaseRevenue * (invoiceTotal / totalItemRevenue) : itemBaseRevenue;
       const itemCost = toNumber(item.totalCostSnapshot);
       const productKey = item.productId || item.productNameSnapshot;
       const productName = item.product?.translations.find((x) => x.locale === "en")?.name || item.productNameSnapshot;

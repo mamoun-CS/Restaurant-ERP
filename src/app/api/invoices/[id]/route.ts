@@ -18,6 +18,10 @@ const paymentSchema = z.object({
 
 const schema = z.object({
   orderType: z.enum(["DINE_IN", "TAKEAWAY", "PICKUP", "DELIVERY", "EMPLOYEE_ORDER", "HOSPITALITY", "COMPLIMENTARY"]).default("PICKUP"),
+  customerName: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerAddress: z.string().optional(),
+  customerNotes: z.string().optional(),
   items: z.array(z.object({
     productId: z.string().optional(),
     productName: z.string(),
@@ -28,6 +32,7 @@ const schema = z.object({
     notes: z.string().optional(),
   })).min(1),
   discountAmount: z.number().nonnegative().default(0),
+  taxAmount: z.number().nonnegative().default(0),
   payments: z.array(paymentSchema).min(1),
 });
 
@@ -73,7 +78,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const subtotal = parsed.data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const total = Math.max(0, subtotal - parsed.data.discountAmount);
+  const total = Math.max(0, subtotal - parsed.data.discountAmount + parsed.data.taxAmount);
   const rates = await getRateSnapshot();
   const productIds = parsed.data.items.map((item) => item.productId).filter((value): value is string => Boolean(value));
   const products = await db.product.findMany({ where: { id: { in: productIds } }, select: { id: true, categoryId: true, currentCost: true } });
@@ -88,7 +93,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       data: {
         subtotal,
         discountAmount: parsed.data.discountAmount,
+        taxAmount: parsed.data.taxAmount,
         totalAmount: total,
+        grandTotal: total,
+        customerName: parsed.data.customerName,
+        customerPhone: parsed.data.customerPhone,
+        customerAddress: parsed.data.customerAddress,
+        customerNotes: parsed.data.customerNotes,
         paymentMethod: parsed.data.payments[0].method as PaymentMethod,
         orderType: parsed.data.orderType,
         items: {
@@ -138,6 +149,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         where: { invoiceId: before.id },
         data: {
           orderType: parsed.data.orderType,
+          notes: parsed.data.customerNotes,
           items: parsed.data.items.map((item) => ({
             productName: item.productName,
             quantity: item.quantity,
