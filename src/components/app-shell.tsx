@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Settings,
+  Printer,
   Tags,
   Users,
   WalletCards,
@@ -37,6 +38,7 @@ const nav: { href: string; label: TranslationKey; icon: typeof Gauge }[] = [
   { href: "/admin/discounts", label: "discounts", icon: CirclePercent },
   { href: "/admin/employees", label: "employees", icon: Users },
   { href: "/admin/invoices", label: "invoices", icon: FileText },
+  { href: "/admin/printing/jobs", label: "print", icon: Printer },
   { href: "/admin/settings", label: "settings", icon: Settings },
 ];
 

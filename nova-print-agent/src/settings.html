@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nova Print Agent</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#17202a}.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.nav{background:#17202a;color:white;padding:20px}.brand{font-weight:800;font-size:20px;margin-bottom:24px}.nav a{display:block;color:#c9d2dc;text-decoration:none;padding:10px;border-radius:8px;margin:4px 0}.main{padding:24px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:white;border:1px solid #dfe4ea;border-radius:8px;padding:16px;margin-bottom:16px}.status{display:inline-flex;align-items:center;gap:8px;font-weight:700}.dot{width:10px;height:10px;border-radius:50%;background:#d64545}.dot.ok{background:#168a4a}label{display:block;font-size:12px;font-weight:700;margin:12px 0 6px}input,select{width:100%;height:38px;border:1px solid #cfd6df;border-radius:7px;padding:0 10px}button{height:38px;border:0;border-radius:7px;background:#0f6bff;color:white;font-weight:700;padding:0 14px;cursor:pointer}button.secondary{background:#e8edf3;color:#17202a}.row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.muted{color:#667085;font-size:12px}.log{font-family:Consolas,monospace;font-size:12px;max-height:240px;overflow:auto}.rtl{direction:rtl}@media(max-width:760px){.shell{grid-template-columns:1fr}.nav{position:static}.main{padding:14px}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="nav">
+      <div class="brand">Nova Print Agent</div>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#pairing">Device Pairing</a>
+      <a href="#printers">Printer Settings</a>
+      <a href="#failed">Failed Jobs</a>
+      <a href="#settings">Application Settings</a>
+      <a href="#about">About</a>
+    </aside>
+    <main class="main">
+      <section id="dashboard" class="card">
+        <div class="row" style="justify-content:space-between">
+          <div><h1>Dashboard</h1><div class="status"><span id="dot" class="dot"></span><span id="statusText">Loading</span></div></div>
+          <button id="refreshPrinters">Refresh Printers</button>
+        </div>
+        <div class="grid" style="margin-top:16px">
+          <div><div class="muted">Device</div><b id="deviceName">-</b></div>
+          <div><div class="muted">ERP Server</div><b id="erpUrl">-</b></div>
+          <div><div class="muted">Printers Detected</div><b id="printerCount">0</b></div>
+          <div><div class="muted">Printed Today</div><b id="printedToday">0</b></div>
+          <div><div class="muted">Failed Jobs</div><b id="failedJobs">0</b></div>
+          <div><div class="muted">Last Error</div><b id="lastError">-</b></div>
+        </div>
+      </section>
+      <section id="pairing" class="card">
+        <h2>Device Pairing</h2>
+        <div class="row">
+          <div style="flex:1;min-width:220px"><label>ERP URL</label><input id="pairErpUrl" placeholder="https://erp.example.com"></div>
+          <div style="flex:1;min-width:180px"><label>Device Name</label><input id="pairDeviceName"></div>
+          <div style="flex:1;min-width:160px"><label>Pairing Code</label><input id="pairingCode"></div>
+          <button id="pairButton">Pair device</button>
+        </div>
+        <p id="pairMessage" class="muted"></p>
+      </section>
+      <section id="printers" class="card">
+        <h2>Printer Settings</h2>
+        <div class="row">
+          <div style="flex:1"><label>Detected printer</label><select id="printerSelect"></select></div>
+          <div><label>Paper</label><select id="paperWidth"><option value="W80">80mm</option><option value="W58">58mm</option><option value="A4">A4</option></select></div>
+          <button id="testPrinter">Test Print</button>
+        </div>
+        <div id="printerList" class="log" style="margin-top:14px"></div>
+      </section>
+      <section id="failed" class="card">
+        <h2>Failed Jobs / Queue</h2>
+        <div id="queueList" class="log"></div>
+      </section>
+      <section id="settings" class="card">
+        <h2>Application Settings</h2>
+        <label><input type="checkbox" id="startWithWindows" style="width:auto;height:auto"> Start Nova Print Agent with Windows</label>
+        <label><input type="checkbox" id="mockMode" style="width:auto;height:auto"> Mock printer development mode</label>
+        <label><input type="checkbox" id="paused" style="width:auto;height:auto"> Pause printing</label>
+        <div class="row"><button id="saveSettings">Save Settings</button><button id="arabic" class="secondary">العربية</button></div>
+      </section>
+      <section id="about" class="card"><h2>About</h2><p class="muted" id="aboutText"></p></section>
+    </main>
+  </div>
+  <script>
+    let status={}, printers=[];
+    async function load(){
+      status=await window.printAgent.getStatus();
+      printers=await window.printAgent.getPrinters().catch(()=>[]);
+      render();
+      renderQueue();
+    }
+    function render(){
+      document.getElementById("dot").className="dot "+(status.connected?"ok":"");
+      document.getElementById("statusText").textContent=status.message||"Disconnected";
+      document.getElementById("deviceName").textContent=status.config?.deviceName||"-";
+      document.getElementById("erpUrl").textContent=status.config?.erpUrl||"-";
+      document.getElementById("pairErpUrl").value=status.config?.erpUrl||"";
+      document.getElementById("pairDeviceName").value=status.config?.deviceName||"Nova Print Agent";
+      document.getElementById("printerCount").textContent=printers.length;
+      document.getElementById("printedToday").textContent=status.queue?.printedToday||0;
+      document.getElementById("failedJobs").textContent=status.queue?.failedJobs||0;
+      document.getElementById("lastError").textContent=status.queue?.lastError||"-";
+      document.getElementById("startWithWindows").checked=!!status.config?.startWithWindows;
+      document.getElementById("mockMode").checked=!!status.config?.mockMode;
+      document.getElementById("paused").checked=!!status.config?.paused;
+      document.getElementById("aboutText").textContent=`Version ${status.appVersion||"-"} · ${status.platform||""}`;
+      const select=document.getElementById("printerSelect"); select.innerHTML=printers.map(p=>`<option value="${escapeAttr(p.name)}">${escapeHtml(p.displayName||p.name)}</option>`).join("");
+      document.getElementById("printerList").innerHTML=printers.map(p=>`${escapeHtml(p.name)} ${p.isDefault?"(default)":""}`).join("<br>");
+    }
+    async function renderQueue(){const jobs=await window.printAgent.getQueue();document.getElementById("queueList").innerHTML=jobs.map(j=>`${j.id} · ${j.status} · ${j.errorCode||""} ${j.errorMessage||""}`).join("<br>")||"No local jobs."}
+    document.getElementById("pairButton").onclick=async()=>{try{const result=await window.printAgent.pairDevice({pairingCode:document.getElementById("pairingCode").value,config:{erpUrl:document.getElementById("pairErpUrl").value,deviceName:document.getElementById("pairDeviceName").value}});document.getElementById("pairMessage").textContent=`Paired: ${result.deviceCode}`;await load()}catch(e){document.getElementById("pairMessage").textContent=e.message}};
+    document.getElementById("refreshPrinters").onclick=load;
+    document.getElementById("testPrinter").onclick=async()=>{await window.printAgent.testPrinter({printerName:document.getElementById("printerSelect").value,paperWidth:document.getElementById("paperWidth").value}).catch(e=>alert(e.message));};
+    document.getElementById("saveSettings").onclick=async()=>{await window.printAgent.saveConfig({startWithWindows:document.getElementById("startWithWindows").checked,mockMode:document.getElementById("mockMode").checked,paused:document.getElementById("paused").checked});await load()};
+    document.getElementById("arabic").onclick=()=>document.body.classList.toggle("rtl");
+    window.printAgent.onStatus(s=>{status=s;render();renderQueue()});
+    window.printAgent.onPrinters(p=>{printers=p;render()});
+    function escapeHtml(v){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+    function escapeAttr(v){return escapeHtml(v).replaceAll("`","")}
+    load();
+  </script>
+</body>
+</html>

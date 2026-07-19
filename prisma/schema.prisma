@@ -180,6 +180,50 @@ enum PayrollStatus {
   PAID
 }
 
+enum PrintDeviceStatus {
+  ONLINE
+  OFFLINE
+  DISABLED
+}
+
+enum PrinterType {
+  CASHIER
+  KITCHEN
+  BAR
+  LABEL
+  REPORT
+}
+
+enum PaperWidth {
+  W58
+  W80
+  A4
+  CUSTOM
+}
+
+enum PrintJobType {
+  CUSTOMER_RECEIPT
+  KITCHEN_TICKET
+  BAR_TICKET
+  SHIFT_CLOSE_REPORT
+  LABEL
+  TEST_PRINT
+}
+
+enum PrintContentType {
+  HTML
+  ESC_POS
+}
+
+enum PrintJobStatus {
+  PENDING
+  SENT
+  PROCESSING
+  PRINTED
+  FAILED
+  CANCELLED
+}
+
 model Branch {
   id                 String              @id @default(cuid())
   name               String
@@ -194,6 +238,10 @@ model Branch {
   inventoryMovements InventoryMovement[]
   cashRegisters      CashRegister[]
   cashShifts         CashShift[]
+  printDevices       PrintDevice[]
+  printerConfigs     PrinterConfiguration[]
+  printJobs          PrintJob[]
+  printPairingCodes  PrintPairingCode[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -243,6 +291,7 @@ model Category {
   products     Product[]
   discounts    DiscountCampaign[] @relation("DiscountCategories")
   invoiceItems InvoiceItem[]
+  printerRoutes CategoryPrinterRoute[]
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 }
@@ -269,6 +318,7 @@ model Product {
   purchaseItems        PurchaseInvoiceItem[]
   purchasePriceHistory PurchasePriceHistory[]
   inventoryMovements   InventoryMovement[]
+  printerRoutes        ProductPrinterRoute[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 }
@@ -467,6 +517,7 @@ model Invoice {
   payment             Payment?
   payments            InvoicePayment[]
   kitchenOrder        KitchenOrder?
+  printJobs           PrintJob[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -803,6 +854,7 @@ model KitchenOrder {
   showPrices  Boolean            @default(false)
   items       Json
   notes       String?
+  printJobs   PrintJob[]
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
@@ -1055,4 +1107,137 @@ model InvoiceSequence {
   updatedAt  DateTime @updatedAt
 
   @@unique([branchId, registerId, year])
+}
+
+model PrintDevice {
+  id                String                 @id @default(cuid())
+  branchId          String
+  branch            Branch                 @relation(fields: [branchId], references: [id])
+  name              String
+  deviceCode        String                 @unique
+  tokenHash         String
+  status            PrintDeviceStatus      @default(OFFLINE)
+  operatingSystem   String?
+  appVersion        String?
+  localPrinters     Json?
+  lastConnectedAt   DateTime?
+  lastHeartbeatAt   DateTime?
+  disabledAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  printerConfigs    PrinterConfiguration[]
+  printJobs         PrintJob[]
+  pairingCodes      PrintPairingCode[]
+
+  @@index([branchId, status])
+  @@index([lastHeartbeatAt])
+}
+
+model PrintPairingCode {
+  id            String       @id @default(cuid())
+  branchId      String
+  branch        Branch       @relation(fields: [branchId], references: [id])
+  printDeviceId String?
+  printDevice   PrintDevice? @relation(fields: [printDeviceId], references: [id], onDelete: SetNull)
+  codeHash      String       @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  attempts      Int          @default(0)
+  createdById   String?
+  createdAt     DateTime     @default(now())
+
+  @@index([branchId, expiresAt])
+  @@index([usedAt])
+}
+
+model PrinterConfiguration {
+  id                String                 @id @default(cuid())
+  branchId          String
+  branch            Branch                 @relation(fields: [branchId], references: [id])
+  printDeviceId     String
+  printDevice       PrintDevice            @relation(fields: [printDeviceId], references: [id], onDelete: Cascade)
+  printerType       PrinterType
+  localPrinterName  String
+  displayName       String
+  paperWidth        PaperWidth             @default(W80)
+  customWidthMm     Int?
+  copies            Int                    @default(1)
+  autoPrint         Boolean                @default(true)
+  enabled           Boolean                @default(true)
+  openCashDrawer    Boolean                @default(false)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  productRoutes     ProductPrinterRoute[]
+  categoryRoutes    CategoryPrinterRoute[]
+  printJobs         PrintJob[]
+
+  @@index([branchId, printerType, enabled])
+  @@index([printDeviceId, enabled])
+}
+
+model ProductPrinterRoute {
+  id                     String               @id @default(cuid())
+  productId              String
+  product                Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  printerConfigurationId String
+  printerConfiguration   PrinterConfiguration @relation(fields: [printerConfigurationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@unique([productId])
+  @@index([printerConfigurationId])
+}
+
+model CategoryPrinterRoute {
+  id                     String               @id @default(cuid())
+  categoryId             String
+  category               Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  printerConfigurationId String
+  printerConfiguration   PrinterConfiguration @relation(fields: [printerConfigurationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@unique([categoryId])
+  @@index([printerConfigurationId])
+}
+
+model PrintJob {
+  id                     String                @id @default(cuid())
+  branchId               String
+  branch                 Branch                @relation(fields: [branchId], references: [id])
+  printDeviceId          String?
+  printDevice            PrintDevice?          @relation(fields: [printDeviceId], references: [id], onDelete: SetNull)
+  printerConfigurationId String?
+  printerConfiguration   PrinterConfiguration? @relation(fields: [printerConfigurationId], references: [id], onDelete: SetNull)
+  invoiceId              String?
+  invoice                Invoice?              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  kitchenOrderId         String?
+  kitchenOrder           KitchenOrder?         @relation(fields: [kitchenOrderId], references: [id], onDelete: SetNull)
+  originalPrintJobId     String?
+  originalPrintJob       PrintJob?             @relation("PrintJobReprints", fields: [originalPrintJobId], references: [id], onDelete: SetNull)
+  reprints               PrintJob[]            @relation("PrintJobReprints")
+  jobType                PrintJobType
+  contentType            PrintContentType       @default(HTML)
+  content                String
+  copies                 Int                   @default(1)
+  paperWidth             PaperWidth            @default(W80)
+  customWidthMm          Int?
+  status                 PrintJobStatus        @default(PENDING)
+  attempts               Int                   @default(0)
+  maxAttempts            Int                   @default(5)
+  errorCode              String?
+  errorMessage           String?
+  idempotencyKey         String                @unique
+  createdAt              DateTime              @default(now())
+  sentAt                 DateTime?
+  processingAt           DateTime?
+  printedAt              DateTime?
+  failedAt               DateTime?
+  cancelledAt            DateTime?
+
+  @@index([branchId, status, createdAt])
+  @@index([printDeviceId, status, createdAt])
+  @@index([printerConfigurationId, status])
+  @@index([invoiceId])
+  @@index([kitchenOrderId])
 }

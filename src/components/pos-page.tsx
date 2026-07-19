@@ -158,10 +158,11 @@ export default function PosPage() {
     if (checkingOut || !cart.length) return;
     setCheckingOut(true);
     try {
+      const transactionId = editingInvoiceId || crypto.randomUUID();
       const payload = {
         orderType: deliveryMethod,
-        clientTransactionId: editingInvoiceId || crypto.randomUUID(),
-        idempotencyKey: editingInvoiceId || crypto.randomUUID(),
+        clientTransactionId: transactionId,
+        idempotencyKey: transactionId,
         customerName: customer.name || undefined,
         customerPhone: customer.phone || undefined,
         customerNotes: orderNotes.trim() || undefined,
@@ -210,7 +211,17 @@ export default function PosPage() {
         else alert(data?.message || data?.error || t("checkoutFailed"));
         return;
       }
-      window.location.href = `/invoice/${data.number}`;
+      const invoiceUrl = `/invoice/${data.number}`;
+      if (!editingInvoiceId) {
+        const printToken = crypto.randomUUID();
+        sessionStorage.setItem(
+          autoPrintStorageKey(String(data.number), transactionId),
+          printToken,
+        );
+        window.location.href = `${invoiceUrl}?autoPrint=1&tx=${encodeURIComponent(transactionId)}&printToken=${encodeURIComponent(printToken)}`;
+        return;
+      }
+      window.location.href = invoiceUrl;
     } catch (error) {
       alert(error instanceof Error ? error.message : t("checkoutFailed"));
     } finally {
@@ -449,6 +460,10 @@ export default function PosPage() {
       )}
     </main>
   );
+}
+
+function autoPrintStorageKey(invoiceNumber: string, transactionId: string) {
+  return `erp:auto-print:${invoiceNumber}:${transactionId}`;
 }
 
 function CartPanel({

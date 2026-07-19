@@ -1,6 +1,14 @@
 @import "tailwindcss";
 
 :root {
+  /*
+    Printable receipt width. Keep this value synchronized with:
+    - @page size below, which must stay literal because browser support for CSS variables in @page is inconsistent.
+    - src/config/print.ts PRINT_CONFIG.PAPER_SIZE.
+    Change all three together when switching to 58mm, 72mm, or 80mm paper.
+  */
+  --receipt-paper-width: 60mm;
+  --receipt-safe-padding: 3mm;
   --primary: #f86800;
   --primary-hover: #d95600;
   --primary-soft: #fff0e6;
@@ -46,69 +54,752 @@
   --font-sans: var(--font-inter), var(--font-arabic), sans-serif;
 }
 
-* { box-sizing: border-box; }
-html { background: var(--background); overflow-x: hidden; }
-body { margin: 0; background: var(--background); color: var(--text); overflow-x: hidden; }
-button, input, select, textarea { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-img, svg, canvas, video { max-width: 100%; }
-table { border-collapse: collapse; }
-:focus-visible { outline: 0; box-shadow: 0 0 0 3px var(--accent); }
+* {
+  box-sizing: border-box;
+}
+html {
+  background: var(--background);
+  overflow-x: hidden;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  overflow-x: hidden;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+table {
+  border-collapse: collapse;
+}
+:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--accent);
+}
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 1px 0 rgb(36 23 15 / .03); }
-.input { width: 100%; height: 46px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-raised); padding: 0 14px; outline: none; transition: .2s; }
-.input-icon-start { padding-inline-start: 44px !important; }
-.input-icon-both { padding-inline-start: 44px !important; padding-inline-end: 44px !important; }
-.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
-.btn-primary { min-height: 46px; border-radius: 12px; background: var(--primary); color: white; font-weight: 700; padding: 0 18px; transition: .2s; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2); }
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-.btn-secondary { min-height: 44px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); padding: 0 16px; font-weight: 650; }
-.btn-primary,.btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:44px}
-.page-container{width:100%;max-width:1680px;margin-inline:auto;padding:16px}
-.responsive-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px}
-.table-scroll{width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
-.table-scroll>table{min-width:720px}
-.mobile-card-list{display:none}
-.amount{font-variant-numeric:tabular-nums}
-.break-anywhere{overflow-wrap:anywhere;word-break:break-word}
-.screen-only{}
-.print-only{display:none!important}
-.scrollbar-none::-webkit-scrollbar { display: none; }
-.scrollbar-none { scrollbar-width: none; }
-.finance-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-.finance-quick { min-height:64px; display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:14px; font-weight:750; transition:.2s; }
-.finance-quick:hover { border-color:var(--primary); box-shadow:0 8px 24px rgb(36 23 15 / .08); transform:translateY(-2px); }
-.finance-quick>span { width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:var(--primary-soft);color:var(--primary); }
-.finance-kpis { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:20px; }
-.finance-kpi { min-height:148px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;display:flex;flex-direction:column;align-items:flex-start;gap:12px; }
-.finance-kpi svg { color:var(--primary); }.finance-kpi span{color:var(--muted);font-size:14px}.finance-kpi strong{font-size:25px;font-variant-numeric:tabular-nums;margin-top:auto}.finance-kpi.featured{background:#173d35;color:white;border-color:#173d35}.finance-kpi.featured span,.finance-kpi.featured svg{color:#bfe5dc}
-.finance-table{width:100%;min-width:650px;font-size:14px}.finance-table th{text-align:start;padding:13px 20px;background:var(--background);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}.finance-table td{padding:16px 20px;border-top:1px solid var(--border);vertical-align:middle}.finance-table td small{display:block;color:var(--muted);margin-top:3px}.finance-table .amount{font-weight:800;font-variant-numeric:tabular-nums}.finance-table .amount.expense{color:var(--danger)}.status{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:8px;background:#f3eee8;font-size:12px;font-weight:700}.status.expense,.status.unpaid{color:var(--danger);background:#fff0ed}.status.paid{color:var(--success);background:#e8f6ef}.status.partially_paid{color:var(--warning);background:#fff5e2}
-button:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
-.pnl-filters{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px}.pnl-filters label{min-width:0}
-.mobile-primary-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.payroll-cards{display:none}.responsive-records{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.responsive-records small{display:block;color:var(--muted);margin-top:12px}.modal-actions{grid-column:1/-1;position:sticky;bottom:-20px;background:var(--surface);border-top:1px solid var(--border);padding:14px 0 0;display:flex;justify-content:flex-end}.pnl-lines>div{display:flex;justify-content:space-between;gap:20px;padding:18px 6px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}.pnl-lines .total{font-size:18px;color:var(--primary);border-bottom:2px solid var(--primary);}.report-list{display:grid;gap:14px}.report-list article{display:flex;align-items:center;gap:16px}.transaction-cards{display:none}
-@media(max-width:1100px){.finance-kpis{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:800px){.responsive-records{grid-template-columns:1fr 1fr}.payroll-table{display:none}.payroll-cards{display:grid;gap:12px}.payroll-cards dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.payroll-cards dt{font-size:11px;color:var(--muted)}.payroll-cards dd{font-size:13px;font-weight:700;margin-top:3px}}
-@media(max-width:1024px){.page-container{max-width:none}.table-scroll>table{min-width:760px}}
-@media(max-width:640px){.page-container{padding:12px}.card{border-radius:12px}.input{height:44px}.mobile-full{width:100%}.pnl-filters{grid-template-columns:minmax(0,1fr)}.finance-actions,.finance-kpis,.responsive-records{grid-template-columns:1fr}.finance-quick{min-height:58px}.finance-kpi{min-height:120px}.finance-kpi strong{font-size:23px}.transaction-table{display:none!important}.transaction-cards{display:block!important}.report-list article{align-items:flex-start;flex-wrap:wrap}.report-list article a{margin-inline-start:0;width:100%;justify-content:center}.mobile-primary-actions>*{flex:1;min-width:150px}.payroll-cards dl{grid-template-columns:1fr 1fr}.mobile-card-list{display:grid;gap:12px}.mobile-hidden-table{display:none!important}}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 0 rgb(36 23 15 / 0.03);
+}
+.input {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  padding: 0 14px;
+  outline: none;
+  transition: 0.2s;
+}
+.input-icon-start {
+  padding-inline-start: 44px !important;
+}
+.input-icon-both {
+  padding-inline-start: 44px !important;
+  padding-inline-end: 44px !important;
+}
+.input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.btn-primary {
+  min-height: 46px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  padding: 0 18px;
+  transition: 0.2s;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+.btn-secondary {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 16px;
+  font-weight: 650;
+}
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+}
+.page-container {
+  width: 100%;
+  max-width: 1680px;
+  margin-inline: auto;
+  padding: 16px;
+}
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > table {
+  min-width: 720px;
+}
+.mobile-card-list {
+  display: none;
+}
+.amount {
+  font-variant-numeric: tabular-nums;
+}
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.screen-only {
+}
+.print-only {
+  display: none !important;
+}
+#print-root {
+  display: none;
+}
+.print-invoice {
+  width: var(--receipt-paper-width);
+  max-width: var(--receipt-paper-width);
+  min-width: 0;
+  margin: 0;
+  padding: var(--receipt-safe-padding);
+  box-sizing: border-box;
+}
+.print-invoice-content {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.invoice-info-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22mm, auto);
+  align-items: start;
+  gap: 2mm;
+  width: 100%;
+  min-width: 0;
+}
+.invoice-info-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: left;
+  direction: ltr;
+}
+.invoice-info-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+  direction: rtl;
+}
+.invoice-contact {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+  direction: ltr;
+  unicode-bidi: plaintext;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  font-size: 9px;
+}
+.invoice-total-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2mm;
+  width: 100%;
+  min-width: 0;
+}
+.invoice-total-value {
+  min-width: 0;
+  direction: ltr;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.invoice-total-label {
+  direction: rtl;
+  text-align: right;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.finance-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.finance-quick {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-weight: 750;
+  transition: 0.2s;
+}
+.finance-quick:hover {
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px rgb(36 23 15 / 0.08);
+  transform: translateY(-2px);
+}
+.finance-quick > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.finance-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.finance-kpi {
+  min-height: 148px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.finance-kpi svg {
+  color: var(--primary);
+}
+.finance-kpi span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.finance-kpi strong {
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+  margin-top: auto;
+}
+.finance-kpi.featured {
+  background: #173d35;
+  color: white;
+  border-color: #173d35;
+}
+.finance-kpi.featured span,
+.finance-kpi.featured svg {
+  color: #bfe5dc;
+}
+.finance-table {
+  width: 100%;
+  min-width: 650px;
+  font-size: 14px;
+}
+.finance-table th {
+  text-align: start;
+  padding: 13px 20px;
+  background: var(--background);
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.finance-table td {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+}
+.finance-table td small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.finance-table .amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.finance-table .amount.expense {
+  color: var(--danger);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: #f3eee8;
+  font-size: 12px;
+  font-weight: 700;
+}
+.status.expense,
+.status.unpaid {
+  color: var(--danger);
+  background: #fff0ed;
+}
+.status.paid {
+  color: var(--success);
+  background: #e8f6ef;
+}
+.status.partially_paid {
+  color: var(--warning);
+  background: #fff5e2;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.pnl-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 12px;
+}
+.pnl-filters label {
+  min-width: 0;
+}
+.mobile-primary-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.payroll-cards {
+  display: none;
+}
+.responsive-records {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.responsive-records small {
+  display: block;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.modal-actions {
+  grid-column: 1/-1;
+  position: sticky;
+  bottom: -20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 14px 0 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.pnl-lines > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 6px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.pnl-lines .total {
+  font-size: 18px;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+.report-list {
+  display: grid;
+  gap: 14px;
+}
+.report-list article {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.transaction-cards {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .finance-kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 800px) {
+  .responsive-records {
+    grid-template-columns: 1fr 1fr;
+  }
+  .payroll-table {
+    display: none;
+  }
+  .payroll-cards {
+    display: grid;
+    gap: 12px;
+  }
+  .payroll-cards dl {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .payroll-cards dt {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .payroll-cards dd {
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 3px;
+  }
+}
+@media (max-width: 1024px) {
+  .page-container {
+    max-width: none;
+  }
+  .table-scroll > table {
+    min-width: 760px;
+  }
+}
+@media (max-width: 640px) {
+  .page-container {
+    padding: 12px;
+  }
+  .card {
+    border-radius: 12px;
+  }
+  .input {
+    height: 44px;
+  }
+  .mobile-full {
+    width: 100%;
+  }
+  .pnl-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .finance-actions,
+  .finance-kpis,
+  .responsive-records {
+    grid-template-columns: 1fr;
+  }
+  .finance-quick {
+    min-height: 58px;
+  }
+  .finance-kpi {
+    min-height: 120px;
+  }
+  .finance-kpi strong {
+    font-size: 23px;
+  }
+  .transaction-table {
+    display: none !important;
+  }
+  .transaction-cards {
+    display: block !important;
+  }
+  .report-list article {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .report-list article a {
+    margin-inline-start: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .mobile-primary-actions > * {
+    flex: 1;
+    min-width: 150px;
+  }
+  .payroll-cards dl {
+    grid-template-columns: 1fr 1fr;
+  }
+  .mobile-card-list {
+    display: grid;
+    gap: 12px;
+  }
+  .mobile-hidden-table {
+    display: none !important;
+  }
+}
 
-.modal-animate { animation: modal-in 0.2s ease-out; }
+.modal-animate {
+  animation: modal-in 0.2s ease-out;
+}
 @keyframes modal-in {
-  from { opacity: 0; transform: scale(0.96) translateY(4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-.animate-spin { animation: spin 1s linear infinite; }
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Keep this literal 60mm value synchronized with --receipt-paper-width and PRINT_CONFIG.PAPER_SIZE. */
+@page {
+  size: 60mm auto;
+  margin: 0;
+}
 
 @media print {
-  @page { size: A4; margin: 12mm; }
-  html, body { background: white !important; color: black !important; overflow: visible !important; }
-  .no-print, .screen-only, aside, header, nav, button, .btn-primary, .btn-secondary { display: none !important; }
-  .print-only { display: block !important; }
-  .card { box-shadow: none !important; border-color: #bbb !important; break-inside: avoid; }
-  table { width: 100% !important; min-width: 0 !important; page-break-inside: auto; }
-  tr, img { break-inside: avoid; }
-  thead { display: table-header-group; }
-  .receipt-print { box-shadow: none !important; border: 0 !important; width: 80mm !important; margin: 0 !important; padding: 4mm !important; }
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    width: var(--receipt-paper-width) !important;
+    min-width: 0 !important;
+    max-width: var(--receipt-paper-width) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+
+  body > * {
+    display: none !important;
+  }
+
+  body > #print-root {
+    display: block !important;
+  }
+
+  body,
+  body * {
+    box-sizing: border-box !important;
+  }
+
+  #print-root,
+  #print-root * {
+    visibility: visible !important;
+  }
+
+  #print-root {
+    width: var(--receipt-paper-width) !important;
+    max-width: var(--receipt-paper-width) !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    direction: rtl;
+    background: white !important;
+  }
+
+  .print-invoice,
+  .print-invoice *,
+  .print-invoice *::before,
+  .print-invoice *::after {
+    box-sizing: border-box !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-invoice {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    float: none !important;
+    clear: both !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    zoom: 1 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    color: black !important;
+    direction: rtl;
+    width: var(--receipt-paper-width) !important;
+    min-width: 0 !important;
+    max-width: var(--receipt-paper-width) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: var(--receipt-safe-padding) !important;
+    overflow: visible !important;
+    font-size: 8.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .print-invoice-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .print-invoice * {
+    position: static !important;
+    float: none !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    zoom: 1 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+  .print-invoice img,
+  .print-invoice svg {
+    display: block !important;
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+    break-inside: avoid;
+  }
+
+  .print-invoice table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+    overflow: visible !important;
+  }
+
+  .print-invoice th,
+  .print-invoice td {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 1mm !important;
+    font-size: 8px !important;
+    overflow: visible !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .print-invoice tr,
+  .print-invoice img {
+    break-inside: avoid;
+  }
+
+  .print-invoice thead {
+    display: table-header-group;
+  }
+
+  .invoice-info-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(22mm, auto) !important;
+    align-items: start !important;
+    gap: 2mm !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .invoice-info-value,
+  .invoice-info-label,
+  .invoice-total-value,
+  .invoice-total-label {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .invoice-info-value,
+  .invoice-total-value {
+    direction: ltr !important;
+    text-align: left !important;
+  }
+
+  .invoice-info-label,
+  .invoice-total-label {
+    direction: rtl !important;
+    text-align: right !important;
+  }
+
+  .invoice-contact {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    direction: ltr !important;
+    unicode-bidi: plaintext !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    font-size: 9px !important;
+  }
+
+  .invoice-total-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 2mm !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .print-invoice .border-y,
+  .print-invoice .border-t {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .print-invoice .text-center {
+    overflow-wrap: anywhere;
+  }
 }

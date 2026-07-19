@@ -17,6 +17,7 @@ The target users are restaurant managers, cashiers, and operations staff who nee
 - Official invoice numbering, invoice idempotency keys, expanded card/bank payment metadata, and standardized API errors for protected mutations.
 - Shift expenses and shift returns APIs.
 - Kitchen order creation for products marked as requiring preparation.
+- Secure local printing workflow with paired Nova Print Agent devices, printer configuration, print routing, and print-job tracking.
 - Audit log model for sensitive actions.
 - Arabic RTL and English LTR UI support.
 - Responsive layout, mobile navigation drawer, mobile table cards, and print-safe CSS.
