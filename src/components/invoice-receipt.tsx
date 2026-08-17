@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Globe2, Printer } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { ArrowLeft, CheckCircle2, Globe2, Printer, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/components/language-provider";
-import { PRINT_CONFIG } from "@/config/print";
 
 type Invoice = {
+  id?: string;
   number: string;
   createdAt: string;
   subtotal: string | number;
@@ -35,6 +34,7 @@ type Invoice = {
   }[];
   qrCode?: string | null;
   barcode?: string | null;
+  receiptHtml?: string;
   items: {
     productNameSnapshot: string;
     quantity: number;
@@ -45,13 +45,30 @@ type Invoice = {
 };
 
 type TranslationFn = ReturnType<typeof useLanguage>["t"];
+type PrintState = {
+  loading: boolean;
+  message: string;
+  tone: "success" | "error" | "info";
+  jobId?: string;
+  status?: "PENDING" | "SENT" | "PROCESSING" | "PRINTED" | "FAILED" | "CANCELLED";
+};
 
 export default function InvoiceReceipt({ number }: { number: string }) {
   const { t, locale, setLocale } = useLanguage();
   const searchParams = useSearchParams();
   const [data, setData] = useState<Invoice | null>(null);
   const [error, setError] = useState("");
+  const [printState, setPrintState] = useState<PrintState>({
+    loading: false,
+    message: "",
+    tone: "info",
+  });
   const autoPrintStarted = useRef(false);
+  const inFlightPrint = useRef(false);
+  const receiptPreviewHtml = useMemo(
+    () => (data?.receiptHtml ? extractReceiptPreviewHtml(data.receiptHtml) : ""),
+    [data],
+  );
 
   useEffect(() => {
     fetch(`/api/invoices/${encodeURIComponent(number)}`, { cache: "no-store" })
@@ -68,9 +85,102 @@ export default function InvoiceReceipt({ number }: { number: string }) {
       );
   }, [number]);
 
+  const sendToPrintAgent = useCallback(async (mode: "PRINT" | "REPRINT") => {
+    if (!data || inFlightPrint.current) return;
+    inFlightPrint.current = true;
+    setPrintState({
+      loading: true,
+      message:
+        locale === "ar"
+          ? "جارٍ إرسال الفاتورة إلى وكيل الطباعة..."
+          : "Sending invoice to Print Agent...",
+      tone: "info",
+    });
+    try {
+      const response = await fetch(
+        `/api/printing/invoices/${encodeURIComponent(data.id || data.number)}/print`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode, requestId: crypto.randomUUID() }),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          payload?.message ||
+            (locale === "ar"
+              ? "تعذر إرسال الفاتورة إلى وكيل الطباعة."
+              : "Invoice could not be sent to Print Agent."),
+        );
+      }
+      setPrintState({
+        loading: false,
+        tone: "info",
+        jobId: payload.job?.id,
+        status: payload.job?.status,
+        message:
+          mode === "REPRINT"
+            ? locale === "ar"
+              ? "تمت إضافة إعادة الطباعة إلى قائمة انتظار الفواتير. بانتظار وكيل الطباعة..."
+              : "Reprint is in the invoice queue. Waiting for Print Agent..."
+            : locale === "ar"
+              ? "تمت إضافة الفاتورة إلى قائمة انتظار الطباعة. بانتظار وكيل الطباعة..."
+              : "Invoice is in the print queue. Waiting for Print Agent...",
+      });
+    } catch (err) {
+      setPrintState({
+        loading: false,
+        tone: "error",
+        message:
+          err instanceof Error
+            ? err.message
+            : locale === "ar"
+              ? "فشلت الطباعة عبر وكيل الطباعة."
+              : "Print Agent request failed.",
+      });
+    } finally {
+      inFlightPrint.current = false;
+    }
+  }, [data, locale]);
+
   useEffect(() => {
-    if (!data || autoPrintStarted.current || !PRINT_CONFIG.ENABLE_AUTO_PRINT)
-      return;
+    if (!printState.jobId || printState.status === "PRINTED" || printState.status === "FAILED" || printState.status === "CANCELLED") return;
+    let stopped = false;
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/printing/jobs/${encodeURIComponent(printState.jobId!)}`, { cache: "no-store" });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success || stopped) return;
+        setPrintState((current) => ({
+          ...current,
+          loading: false,
+          status: payload.job.status,
+          tone: statusTone(payload.job.status),
+          message: statusMessage(payload.job.status, locale, payload.job.errorMessage),
+        }));
+        if (["PRINTED", "FAILED", "CANCELLED"].includes(payload.job.status)) {
+          window.clearInterval(timer);
+        }
+      } catch {
+        if (!stopped) {
+          setPrintState((current) => ({
+            ...current,
+            loading: false,
+            tone: "info",
+            message: locale === "ar" ? "بانتظار تحديث حالة الطباعة..." : "Waiting for print status update...",
+          }));
+        }
+      }
+    }, 2000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [locale, printState.jobId, printState.status]);
+
+  useEffect(() => {
+    if (!data || autoPrintStarted.current) return;
 
     const autoPrint = searchParams.get("autoPrint");
     const transactionId = searchParams.get("tx");
@@ -81,63 +191,16 @@ export default function InvoiceReceipt({ number }: { number: string }) {
     if (sessionStorage.getItem(storageKey) !== printToken) return;
 
     autoPrintStarted.current = true;
-    if (PRINT_CONFIG.REMOVE_PRINT_FLAG_AFTER_PRINT) {
-      sessionStorage.removeItem(storageKey);
-      const cleanUrl = `${window.location.pathname}${window.location.hash}`;
-      window.history.replaceState(window.history.state, "", cleanUrl);
-    }
-
-    let cancelled = false;
-    const printWhenReady = async () => {
-      await waitForInvoiceRender();
-      await nextFrame();
-      if (cancelled) return;
-      window.setTimeout(() => {
-        if (!cancelled) printInvoice();
-      }, PRINT_CONFIG.AUTO_PRINT_DELAY);
-    };
-
-    void printWhenReady();
-    return () => {
-      cancelled = true;
-    };
-  }, [data, searchParams]);
-
-  const printRoot =
-    data && typeof document !== "undefined"
-      ? createPortal(
-          <div id="print-root">
-            <ReceiptArticle invoice={data} locale={locale} t={t} print />
-          </div>,
-          document.body,
-        )
-      : null;
+    sessionStorage.removeItem(storageKey);
+    const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", cleanUrl);
+    window.setTimeout(() => {
+      void sendToPrintAgent("PRINT");
+    }, 0);
+  }, [data, searchParams, sendToPrintAgent]);
 
   return (
     <main className="min-h-screen bg-background">
-      <style>{`
-        @media print {
-          * {
-            -webkit-print-color-adjust: ${PRINT_CONFIG.PRINT_BACKGROUND ? "exact" : "economy"};
-            print-color-adjust: ${PRINT_CONFIG.PRINT_BACKGROUND ? "exact" : "economy"};
-          }
-
-          .print-invoice {
-            font-size: 8.5px !important;
-            line-height: 1.35 !important;
-          }
-
-          .print-invoice h2 {
-            font-size: 13px !important;
-          }
-
-          .print-invoice svg {
-            width: 34px !important;
-            height: 34px !important;
-          }
-        }
-      `}</style>
-      {printRoot}
       <header className="no-print h-18 bg-surface border-b border-border px-4 sm:px-8 flex items-center">
         <Link href="/pos" className="btn-secondary flex items-center gap-2">
           <ArrowLeft size={17} className="rtl:rotate-180" />
@@ -152,28 +215,75 @@ export default function InvoiceReceipt({ number }: { number: string }) {
             {t("language")}
           </button>
           <button
-            onClick={async () => {
-              await prepareAndPrintInvoice();
-            }}
+            disabled={!data || printState.loading}
+            onClick={() => void sendToPrintAgent("PRINT")}
             className="btn-primary flex gap-2 items-center"
           >
+            {printState.loading ? (
+              <RefreshCw className="animate-spin" size={17} />
+            ) : (
+              <Printer size={17} />
+            )}
+            {locale === "ar" ? "طباعة الفاتورة" : "Print Invoice"}
+          </button>
+          <button
+            disabled={!data || printState.loading}
+            onClick={() => void sendToPrintAgent("REPRINT")}
+            className="btn-secondary flex gap-2 items-center"
+          >
             <Printer size={17} />
-            {t("print")}
+            {locale === "ar" ? "إعادة الطباعة" : "Reprint Invoice"}
           </button>
         </div>
       </header>
-      <div className="max-w-3xl mx-auto p-4 sm:p-10">
-        <div className="no-print text-center mb-6">
-          <CheckCircle2 size={42} className="text-success mx-auto" />
-          <h1 className="text-2xl font-bold mt-3">
-            {data ? "Payment completed" : error || "Loading..."}
-          </h1>
-          <p className="text-muted mt-1">Invoice #{number}</p>
-        </div>
-        {data && (
-          <ReceiptArticle invoice={data} locale={locale} t={t} />
+     <div className="invoice-page-content w-full px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
+  <div className="no-print text-center mb-6">
+    <CheckCircle2 size={42} className="text-success mx-auto" />
+
+    <h1 className="text-2xl font-bold mt-3">
+      {data
+        ? locale === "ar"
+          ? "تم إتمام الدفع"
+          : "Payment completed"
+        : error || (locale === "ar" ? "جارٍ التحميل..." : "Loading...")}
+    </h1>
+
+    <p className="text-muted mt-1">Invoice #{number}</p>
+  </div>
+
+  <div className="w-full">
+    {printState.message && (
+      <div
+        className={`no-print mb-5 rounded-xl border px-4 py-3 text-sm font-bold ${
+          printState.tone === "success"
+            ? "border-success/25 bg-success/10 text-success"
+            : printState.tone === "error"
+              ? "border-danger/25 bg-danger/10 text-danger"
+              : "border-border bg-surface text-muted"
+        }`}
+      >
+        {printState.message}
+
+        {printState.jobId && (
+          <span className="ms-2 font-mono text-xs opacity-75">
+            #{printState.jobId.slice(-8)}
+          </span>
         )}
       </div>
+    )}
+
+    <div className="receipt-stage">
+      {receiptPreviewHtml ? (
+        <div
+          className="receipt-preview-shell"
+          dangerouslySetInnerHTML={{ __html: receiptPreviewHtml }}
+        />
+      ) : (
+        data && <ReceiptArticle invoice={data} locale={locale} t={t} />
+      )}
+    </div>
+  </div>
+</div>
     </main>
   );
 }
@@ -207,7 +317,7 @@ function ReceiptArticle({
       className={
         print
           ? "print-invoice receipt-print bg-white text-sm"
-          : "receipt-print bg-white border border-border shadow-xl rounded-sm w-full max-w-[60mm] mx-auto p-7 text-sm"
+          : "receipt-fixed receipt-print bg-white border border-border shadow-xl rounded-sm p-7 text-sm"
       }
       dir="rtl"
     >
@@ -382,37 +492,35 @@ function autoPrintStorageKey(invoiceNumber: string, transactionId: string) {
   return `erp:auto-print:${invoiceNumber}:${transactionId}`;
 }
 
-async function waitForInvoiceRender() {
-  await nextFrame();
-  if ("fonts" in document) await document.fonts.ready.catch(() => undefined);
-  const images = Array.from(
-    document.querySelectorAll<HTMLImageElement>(".print-invoice img"),
-  );
-  await Promise.all(
-    images.map((image) => {
-      if (image.complete) return Promise.resolve();
-      return new Promise<void>((resolve) => {
-        image.addEventListener("load", () => resolve(), { once: true });
-        image.addEventListener("error", () => resolve(), { once: true });
-      });
-    }),
-  );
+function extractReceiptPreviewHtml(html: string) {
+  if (typeof window !== "undefined" && "DOMParser" in window) {
+    const document = new DOMParser().parseFromString(html, "text/html");
+    const receipt = document.body.querySelector(".receipt");
+    if (receipt) return receipt.outerHTML;
+    return document.body.innerHTML;
+  }
+
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<head[\s\S]*?<\/head>/gi, "")
+    .replace(/<\/?(?:!doctype|html|body)[^>]*>/gi, "");
 }
 
-async function prepareAndPrintInvoice() {
-  await waitForInvoiceRender();
-  await nextFrame();
-  printInvoice();
+function statusTone(status: PrintState["status"]): PrintState["tone"] {
+  if (status === "PRINTED") return "success";
+  if (status === "FAILED" || status === "CANCELLED") return "error";
+  return "info";
 }
 
-function printInvoice() {
-  window.print();
-}
-
-function nextFrame() {
-  return new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-  );
+function statusMessage(status: PrintState["status"], locale: "en" | "ar", errorMessage?: string) {
+  const ar = locale === "ar";
+  if (status === "PRINTED") return ar ? "تمت الطباعة بنجاح." : "Printed successfully.";
+  if (status === "PROCESSING") return ar ? "وكيل الطباعة يعالج الفاتورة الآن..." : "Print Agent is printing the invoice...";
+  if (status === "SENT") return ar ? "تم إرسال الفاتورة إلى وكيل الطباعة. بانتظار الطباعة..." : "Invoice sent to Print Agent. Waiting for print...";
+  if (status === "FAILED") return errorMessage || (ar ? "فشلت الطباعة. تحقق من وكيل الطباعة أو الطابعة." : "Printing failed. Check the Print Agent or printer.");
+  if (status === "CANCELLED") return ar ? "تم إلغاء مهمة الطباعة." : "Print job was cancelled.";
+  return ar ? "الفاتورة في قائمة انتظار الطباعة." : "Invoice is waiting in the print queue.";
 }
 
 function branchInfo(data: Invoice, locale: "en" | "ar") {

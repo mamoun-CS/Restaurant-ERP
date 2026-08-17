@@ -6,6 +6,7 @@ import { audit, getRateSnapshot } from "@/lib/cash";
 import { db } from "@/lib/db";
 import { PaymentMethod } from "@/generated/prisma/client";
 import { apiError, assertSameOrigin } from "@/lib/api";
+import { buildInvoiceReceiptHtml } from "@/lib/printing/receipt-template";
 
 const paymentSchema = z.object({
   method: z.enum(["CASH", "CREDIT_CARD", "BANK"]),
@@ -45,7 +46,7 @@ async function findInvoice(id: string, cashierId?: string) {
     include: {
       cashier: { select: { id: true, name: true } },
       branch: true,
-      items: { include: { addons: true } },
+      items: { include: { addons: true, product: { include: { translations: true } } } },
       payment: true,
       payments: true,
       kitchenOrder: true,
@@ -59,7 +60,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params;
   const invoice = await findInvoice(id, user.role === "CASHIER" ? user.userId : undefined);
   if (!invoice) return apiError("RESOURCE_NOT_FOUND", "Order not found.", 404);
-  return NextResponse.json(invoice);
+  return NextResponse.json({ ...invoice, receiptHtml: buildInvoiceReceiptHtml(invoice) });
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {

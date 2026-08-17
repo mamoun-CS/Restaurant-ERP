@@ -177,6 +177,7 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [printingId, setPrintingId] = useState("");
   const [notice, setNotice] = useState("");
 
   async function loadOrders() {
@@ -210,6 +211,47 @@ export default function OrdersPage() {
       setError(err instanceof Error ? err.message : c.deleteFailed);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function printOrder(order: OrderRow) {
+    if (printingId) return;
+    setPrintingId(order.id);
+    setNotice("");
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/printing/invoices/${encodeURIComponent(order.id)}/print`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "PRINT", requestId: crypto.randomUUID() }),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(
+          payload?.message ||
+            (locale === "ar"
+              ? "تعذر إرسال الفاتورة إلى وكيل الطباعة."
+              : "Invoice could not be sent to Print Agent."),
+        );
+      }
+      setNotice(
+        locale === "ar"
+          ? "تم إرسال الفاتورة إلى وكيل الطباعة."
+          : "Invoice sent to Print Agent.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : locale === "ar"
+            ? "فشلت الطباعة عبر وكيل الطباعة."
+            : "Print Agent request failed.",
+      );
+    } finally {
+      setPrintingId("");
     }
   }
 
@@ -339,7 +381,7 @@ export default function OrdersPage() {
                         <td className="p-3">{deliveryLabel(order.delivery, c)}</td>
                         <td className="p-3 max-w-[180px] truncate" title={order.notes || c.noNotes}>{order.notes || c.noNotes}</td>
                         <td className="p-3"><OrderBadge status={order.status} label={statusLabel(order.status, c)} /></td>
-                        <td className="p-3"><ActionBar order={order} labels={c} onDelete={() => setDeleteTarget(order)} /></td>
+                        <td className="p-3"><ActionBar order={order} labels={c} printing={printingId === order.id} onPrint={() => void printOrder(order)} onDelete={() => setDeleteTarget(order)} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -366,7 +408,7 @@ export default function OrdersPage() {
                     <div><dt className="text-xs text-muted">{c.deliveryMethod}</dt><dd className="mt-1 font-bold">{deliveryLabel(order.delivery, c)}</dd></div>
                     <div><dt className="text-xs text-muted">{c.notes}</dt><dd className="mt-1 font-bold">{order.notes || c.noNotes}</dd></div>
                   </dl>
-                  <div className="mt-4"><ActionBar order={order} labels={c} onDelete={() => setDeleteTarget(order)} /></div>
+                  <div className="mt-4"><ActionBar order={order} labels={c} printing={printingId === order.id} onPrint={() => void printOrder(order)} onDelete={() => setDeleteTarget(order)} /></div>
                 </article>
               ))}
             </section>
@@ -457,12 +499,24 @@ function normalizeDelivery(raw: RawRecord): DeliveryKind {
   return "OTHER";
 }
 
-function ActionBar({ order, labels, onDelete }: { order: OrderRow; labels: (typeof copy)["en"]; onDelete: () => void }) {
+function ActionBar({
+  order,
+  labels,
+  printing,
+  onPrint,
+  onDelete,
+}: {
+  order: OrderRow;
+  labels: (typeof copy)["en"];
+  printing: boolean;
+  onPrint: () => void;
+  onDelete: () => void;
+}) {
   const closed = !order.canModify;
   return (
     <div className="flex justify-end gap-1.5">
       <IconLink href={`/invoice/${encodeURIComponent(order.number)}`} label={labels.view} icon={<Eye size={16} />} />
-      <IconButton label={labels.print} icon={<Printer size={16} />} onClick={() => window.print()} />
+      <IconButton label={labels.print} icon={printing ? <RefreshCw className="animate-spin" size={16} /> : <Printer size={16} />} disabled={printing} onClick={onPrint} />
       <IconLink href={`/pos?edit=${encodeURIComponent(order.id)}`} label={closed ? labels.modificationClosed : labels.edit} icon={<Pencil size={16} />} disabled={closed} />
       <IconButton label={closed ? labels.modificationClosed : labels.delete} icon={<Ban size={16} />} disabled={closed} danger onClick={onDelete} />
       <Link href="/pos" title={labels.duplicate} aria-label={labels.duplicate} className="size-9 rounded-lg border border-border bg-surface grid place-items-center text-muted hover:text-primary">

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Nova Print Agent</title>
   <style>
-    *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#17202a}.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.nav{background:#17202a;color:white;padding:20px}.brand{font-weight:800;font-size:20px;margin-bottom:24px}.nav a{display:block;color:#c9d2dc;text-decoration:none;padding:10px;border-radius:8px;margin:4px 0}.main{padding:24px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:white;border:1px solid #dfe4ea;border-radius:8px;padding:16px;margin-bottom:16px}.status{display:inline-flex;align-items:center;gap:8px;font-weight:700}.dot{width:10px;height:10px;border-radius:50%;background:#d64545}.dot.ok{background:#168a4a}label{display:block;font-size:12px;font-weight:700;margin:12px 0 6px}input,select{width:100%;height:38px;border:1px solid #cfd6df;border-radius:7px;padding:0 10px}button{height:38px;border:0;border-radius:7px;background:#0f6bff;color:white;font-weight:700;padding:0 14px;cursor:pointer}button.secondary{background:#e8edf3;color:#17202a}.row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.muted{color:#667085;font-size:12px}.log{font-family:Consolas,monospace;font-size:12px;max-height:240px;overflow:auto}.rtl{direction:rtl}@media(max-width:760px){.shell{grid-template-columns:1fr}.nav{position:static}.main{padding:14px}}
+    *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#f6f7f9;color:#17202a}.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.nav{background:#17202a;color:white;padding:20px}.brand{font-weight:800;font-size:20px;margin-bottom:24px}.nav a{display:block;color:#c9d2dc;text-decoration:none;padding:10px;border-radius:8px;margin:4px 0}.nav a:hover{color:white;background:rgba(255,255,255,0.08)}.main{padding:24px;overflow:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:white;border:1px solid #dfe4ea;border-radius:8px;padding:16px;margin-bottom:16px}.status{display:inline-flex;align-items:center;gap:8px;font-weight:700}.dot{width:10px;height:10px;border-radius:50%;background:#d64545}.dot.ok{background:#168a4a}label{display:block;font-size:12px;font-weight:700;margin:12px 0 6px}input,select{width:100%;height:38px;border:1px solid #cfd6df;border-radius:7px;padding:0 10px}button{height:38px;border:0;border-radius:7px;background:#0f6bff;color:white;font-weight:700;padding:0 14px;cursor:pointer}button.secondary{background:#e8edf3;color:#17202a}button:disabled{opacity:0.6;cursor:not-allowed}.row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.muted{color:#667085;font-size:12px}.log{font-family:Consolas,monospace;font-size:12px;max-height:240px;overflow:auto}.rtl{direction:rtl}.queue-controls{display:flex;gap:12px;margin:12px 0;flex-wrap:wrap}.queue-controls input,.queue-controls select{max-width:260px}.queue-table{width:100%;border-collapse:collapse;font-size:13px}.queue-table th,.queue-table td{padding:10px 12px;text-align:start;border-bottom:1px solid #e5e7eb}.queue-table th{background:#f6f7f9;font-weight:700;color:#667085;font-size:12px;text-transform:uppercase;letter-spacing:0.03em}.queue-table tbody tr:hover{background:#f8fafc}.queue-table .status-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}.queue-table .status-pill.pending{background:#fff3cd;color:#856404}.queue-table .status-pill.printing{background:#cce5ff;color:#004085}.queue-table .status-pill.success{background:#d4edda;color:#155724}.queue-table .status-pill.failed{background:#f8d7da;color:#721c24}.queue-table .clickable{cursor:pointer;color:#0f6bff;font-weight:700}.queue-table .clickable:hover{text-decoration:underline}.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}.modal-content{background:white;border-radius:10px;padding:20px;max-width:640px;width:92%;max-height:88vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,0.2)}.modal-backdrop{position:absolute;inset:0}.modal-content h3{margin:0 0 12px}.detail-row{display:flex;padding:8px 0;border-bottom:1px solid #f1f3f5}.detail-row dt{width:140px;color:#667085;font-size:12px;font-weight:700}.detail-row dd{flex:1;font-size:13px;word-break:break-word}.detail-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}@media(max-width:760px){.shell{grid-template-columns:1fr}.nav{position:static}.main{padding:14px}.queue-table{display:block;overflow:auto}.detail-row{flex-direction:column;gap:2px}.detail-row dt{width:auto}}
   </style>
 </head>
 <body>
@@ -15,7 +15,8 @@
       <a href="#dashboard">Dashboard</a>
       <a href="#pairing">Device Pairing</a>
       <a href="#printers">Printer Settings</a>
-      <a href="#failed">Failed Jobs</a>
+      <a href="#queue">Invoice Queue</a>
+      <a href="#failed">Invoice Queue</a>
       <a href="#settings">Application Settings</a>
       <a href="#about">About</a>
     </aside>
@@ -32,6 +33,11 @@
           <div><div class="muted">Printed Today</div><b id="printedToday">0</b></div>
           <div><div class="muted">Failed Jobs</div><b id="failedJobs">0</b></div>
           <div><div class="muted">Last Error</div><b id="lastError">-</b></div>
+          <div><div class="muted">SSE Status</div><b id="sseStatus">-</b></div>
+          <div><div class="muted">Last Connected</div><b id="lastConnectedAt">-</b></div>
+          <div><div class="muted">Last Event</div><b id="lastEventAt">-</b></div>
+          <div><div class="muted">Last Fallback Poll</div><b id="lastFallbackPollAt">-</b></div>
+          <div><div class="muted">Last Printer Refresh</div><b id="lastPrinterRefreshAt">-</b></div>
         </div>
       </section>
       <section id="pairing" class="card">
@@ -49,12 +55,49 @@
         <div class="row">
           <div style="flex:1"><label>Detected printer</label><select id="printerSelect"></select></div>
           <div><label>Paper</label><select id="paperWidth"><option value="W80">80mm</option><option value="W58">58mm</option><option value="A4">A4</option></select></div>
-          <button id="testPrinter">Test Print</button>
+          <button id="testPrinter">Test Printer</button>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div style="min-width:190px"><label>Output Mode</label><select id="outputMode"><option value="printer">Physical Printer</option><option value="pdf">Save as PDF</option></select></div>
+          <div style="flex:1;min-width:240px"><label>Output Folder</label><input id="outputFolder" readonly placeholder="Choose a folder for PDF files"></div>
+          <button class="secondary" id="chooseOutputFolder">Choose Folder</button>
         </div>
         <div id="printerList" class="log" style="margin-top:14px"></div>
       </section>
+      <section id="queue" class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2 data-i18n="invoiceQueue">Invoice Queue</h2>
+          <button class="secondary" id="refreshQueue">Refresh</button>
+        </div>
+        <div class="queue-controls">
+          <input type="text" id="queueSearch" data-i18n-placeholder="searchPlaceholder" placeholder="Search invoice...">
+          <select id="queueFilter">
+            <option value="all" data-i18n="allStatuses">All Statuses</option>
+            <option value="PENDING" data-i18n="pending">Pending</option>
+            <option value="PROCESSING" data-i18n="printing">Printing</option>
+            <option value="PRINTED" data-i18n="success">Success</option>
+            <option value="FAILED" data-i18n="failed">Failed</option>
+          </select>
+        </div>
+        <div class="table-scroll">
+          <table class="queue-table">
+            <thead>
+              <tr>
+                <th data-i18n="invoiceNumber">Invoice Number</th>
+                <th data-i18n="branch">Branch</th>
+                <th data-i18n="printer">Printer</th>
+                <th data-i18n="status">Status</th>
+                <th data-i18n="paymentMethod">Payment Method</th>
+                <th data-i18n="dateTime">Date & Time</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody"></tbody>
+          </table>
+        </div>
+        <p id="queueEmpty" class="muted" style="display:none;text-align:center;padding:18px">No jobs found.</p>
+      </section>
       <section id="failed" class="card">
-        <h2>Failed Jobs / Queue</h2>
+        <h2>Invoice Queue</h2>
         <div id="queueList" class="log"></div>
       </section>
       <section id="settings" class="card">
@@ -62,19 +105,63 @@
         <label><input type="checkbox" id="startWithWindows" style="width:auto;height:auto"> Start Nova Print Agent with Windows</label>
         <label><input type="checkbox" id="mockMode" style="width:auto;height:auto"> Mock printer development mode</label>
         <label><input type="checkbox" id="paused" style="width:auto;height:auto"> Pause printing</label>
+        <div style="max-width:320px"><label>Default Job Action</label><select id="defaultJobAction"><option value="PRINT">Print automatically</option><option value="SAVE_PDF">Save automatically as PDF</option><option value="PRINT_AND_SAVE">Print and save as PDF</option><option value="MANUAL">Wait for manual action</option><option value="REJECT">Reject incoming jobs</option></select></div>
+        <p id="settingsMessage" class="muted"></p>
         <div class="row"><button id="saveSettings">Save Settings</button><button id="arabic" class="secondary">العربية</button></div>
       </section>
       <section id="about" class="card"><h2>About</h2><p class="muted" id="aboutText"></p></section>
     </main>
   </div>
+
+  <div id="queueModal" class="modal" style="display:none">
+    <div class="modal-backdrop" id="closeQueueModalBackdrop"></div>
+    <div class="modal-content">
+      <h3 data-i18n="jobDetails">Job Details</h3>
+      <dl id="queueDetailBody"></dl>
+      <div class="detail-actions">
+        <button id="queuePrint">Print</button>
+        <button id="queueSavePdf">Save as PDF</button>
+        <button id="queuePrintSave">Print and Save</button>
+        <button id="queueRetry">Retry</button>
+        <button class="secondary" id="queueReject">Reject</button>
+        <button class="secondary" id="closeQueueModal" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    let status={}, printers=[];
+    let status={}, printers=[], invoiceJobs=[], currentLang="en", isRefreshingPrinters=false, selectedJob=null;
+    const i18n={
+      en:{invoiceQueue:"Invoice Queue",searchPlaceholder:"Search invoice...",allStatuses:"All Statuses",pending:"Pending",printing:"Printing",success:"Success",failed:"Failed",jobDetails:"Job Details",close:"Close",noJobs:"No jobs found.",invoiceNumber:"Invoice Number",branch:"Branch",printer:"Printer",paymentMethod:"Payment Method",dateTime:"Date & Time",error:"Error",attempts:"Attempts",jobId:"Job ID",jobType:"Job Type",contentPreview:"Content Preview",drawerError:"Drawer Error",cash:"Cash",creditCard:"Card",bank:"Bank"},
+      ar:{invoiceQueue:"قائمة الفواتير",searchPlaceholder:"بحث عن فاتورة...",allStatuses:"جميع الحالات",pending:"قيد الانتظار",printing:"جارٍ الطباعة",success:"نجاح",failed:"فشل",jobDetails:"تفاصيل المهمة",close:"إغلاق",noJobs:"لا توجد مهام.",invoiceNumber:"رقم الفاتورة",branch:"الفرع",printer:"الطابعة",paymentMethod:"طريقة الدفع",dateTime:"التاريخ والوقت",error:"خطأ",attempts:"المحاولات",jobId:"معرف المهمة",jobType:"نوع المهمة",contentPreview:"معاينة المحتوى",drawerError:"خطأ الدرج",cash:"نقدي",creditCard:"بطاقة",bank:"تحويل"}
+    };
+    function t(key){return i18n[currentLang][key]||key}
+
+    function statusLabel(s){
+      const map={RECEIVED:t("pending"),SENT:t("pending"),PENDING:t("pending"),PROCESSING:t("printing"),PRINTED:t("success"),PDF_SAVED:"PDF saved",PRINTED_AND_SAVED:"Printed and saved",WAITING_FOR_MANUAL_ACTION:"Waiting for manual action",REJECTED:"Rejected",FAILED:t("failed"),CANCELLED:t("failed")};
+      return map[s]||s;
+    }
+    function statusClass(s){
+      const map={RECEIVED:"pending",SENT:"pending",PENDING:"pending",PROCESSING:"printing",PRINTED:"success",PDF_SAVED:"success",PRINTED_AND_SAVED:"success",WAITING_FOR_MANUAL_ACTION:"pending",REJECTED:"failed",FAILED:"failed",CANCELLED:"failed"};
+      return map[s]||"pending";
+    }
+    function paymentLabel(m){
+      if(!m)return "-";
+      const map={CASH:t("cash"),CREDIT_CARD:t("creditCard"),BANK:t("bank")};
+      return map[m]||m;
+    }
+    function fmtDate(v){if(!v)return "-";const d=new Date(v);if(isNaN(d))return v;return d.toLocaleString(currentLang==="ar"?"ar-PS":undefined,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+
+    function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+    function escapeAttr(v){return escapeHtml(v).replaceAll("`","")}
+
     async function load(){
       status=await window.printAgent.getStatus();
       printers=await window.printAgent.getPrinters().catch(()=>[]);
       render();
-      renderQueue();
+      await renderInvoiceQueue();
     }
+
     function render(){
       document.getElementById("dot").className="dot "+(status.connected?"ok":"");
       document.getElementById("statusText").textContent=status.message||"Disconnected";
@@ -86,23 +173,207 @@
       document.getElementById("printedToday").textContent=status.queue?.printedToday||0;
       document.getElementById("failedJobs").textContent=status.queue?.failedJobs||0;
       document.getElementById("lastError").textContent=status.queue?.lastError||"-";
+      document.getElementById("sseStatus").textContent=status.sseStatus||"-";
+      document.getElementById("lastConnectedAt").textContent=fmtDate(status.lastConnectedAt);
+      document.getElementById("lastEventAt").textContent=fmtDate(status.lastEventAt);
+      document.getElementById("lastFallbackPollAt").textContent=fmtDate(status.lastFallbackPollAt);
+      document.getElementById("lastPrinterRefreshAt").textContent=fmtDate(status.lastPrinterRefreshAt);
       document.getElementById("startWithWindows").checked=!!status.config?.startWithWindows;
       document.getElementById("mockMode").checked=!!status.config?.mockMode;
       document.getElementById("paused").checked=!!status.config?.paused;
+      document.getElementById("defaultJobAction").value=status.config?.defaultJobAction||"SAVE_PDF";
+      document.getElementById("outputMode").value=status.config?.outputMode==="pdf"?"pdf":"printer";
+      document.getElementById("outputFolder").value=status.config?.outputFolder||"";
+      updateOutputControls();
+      document.getElementById("settingsMessage").textContent=status.lastJobMessage||"";
       document.getElementById("aboutText").textContent=`Version ${status.appVersion||"-"} · ${status.platform||""}`;
       const select=document.getElementById("printerSelect"); select.innerHTML=printers.map(p=>`<option value="${escapeAttr(p.name)}">${escapeHtml(p.displayName||p.name)}</option>`).join("");
       document.getElementById("printerList").innerHTML=printers.map(p=>`${escapeHtml(p.name)} ${p.isDefault?"(default)":""}`).join("<br>");
+      document.getElementById("refreshPrinters").disabled=Boolean(isRefreshingPrinters||status.isRefreshingPrinters);
+      document.getElementById("refreshPrinters").textContent=(isRefreshingPrinters||status.isRefreshingPrinters)?"Refreshing...":"Refresh Printers";
     }
-    async function renderQueue(){const jobs=await window.printAgent.getQueue();document.getElementById("queueList").innerHTML=jobs.map(j=>`${j.id} · ${j.status} · ${j.errorCode||""} ${j.errorMessage||""}`).join("<br>")||"No local jobs."}
-    document.getElementById("pairButton").onclick=async()=>{try{const result=await window.printAgent.pairDevice({pairingCode:document.getElementById("pairingCode").value,config:{erpUrl:document.getElementById("pairErpUrl").value,deviceName:document.getElementById("pairDeviceName").value}});document.getElementById("pairMessage").textContent=`Paired: ${result.deviceCode}`;await load()}catch(e){document.getElementById("pairMessage").textContent=e.message}};
-    document.getElementById("refreshPrinters").onclick=load;
-    document.getElementById("testPrinter").onclick=async()=>{await window.printAgent.testPrinter({printerName:document.getElementById("printerSelect").value,paperWidth:document.getElementById("paperWidth").value}).catch(e=>alert(e.message));};
-    document.getElementById("saveSettings").onclick=async()=>{await window.printAgent.saveConfig({startWithWindows:document.getElementById("startWithWindows").checked,mockMode:document.getElementById("mockMode").checked,paused:document.getElementById("paused").checked});await load()};
-    document.getElementById("arabic").onclick=()=>document.body.classList.toggle("rtl");
-    window.printAgent.onStatus(s=>{status=s;render();renderQueue()});
+
+    function updateOutputControls(){
+      const isPdf=document.getElementById("outputMode").value==="pdf";
+      const hasFolder=Boolean((document.getElementById("outputFolder").value||"").trim());
+      document.getElementById("chooseOutputFolder").disabled=!isPdf;
+      document.getElementById("testPrinter").textContent=isPdf?"Test PDF Save":"Test Printer";
+      document.getElementById("testPrinter").disabled=isPdf&&!hasFolder;
+    }
+
+    async function renderInvoiceQueue(){
+      invoiceJobs=await window.printAgent.getInvoiceQueue().catch(()=>[]);
+      const search=(document.getElementById("queueSearch").value||"").toLowerCase();
+      const filter=document.getElementById("queueFilter").value;
+      let rows=invoiceJobs;
+      if(filter!=="all") rows=rows.filter(j=>j.status===filter);
+      if(search) rows=rows.filter(j=>{
+        const inv=(j.payload?.invoice?.officialNumber||j.payload?.invoice?.number||j.invoiceId||"").toLowerCase();
+        return inv.includes(search);
+      });
+
+      const tbody=document.getElementById("queueTableBody");
+      const empty=document.getElementById("queueEmpty");
+      if(!rows.length){tbody.innerHTML="";empty.style.display="block";return}
+      empty.style.display="none";
+      tbody.innerHTML=rows.map(j=>{
+        const inv=j.payload?.invoice?.officialNumber||j.payload?.invoice?.number||j.invoiceId;
+        const branch=j.payload?.printerConfiguration?.branch?.name||j.payload?.printerConfiguration?.branch?.nameAr||"-";
+        const printer=j.payload?.printerConfiguration?.localPrinterName||"-";
+        const time=fmtDate(j.receivedAt||j.payload?.createdAt);
+        return `<tr>
+          <td><span class="clickable" data-jobid="${escapeAttr(j.id)}">${escapeHtml(inv)}</span></td>
+          <td>${escapeHtml(branch)}</td>
+          <td>${escapeHtml(printer)}</td>
+          <td><span class="status-pill ${statusClass(j.status)}">${escapeHtml(statusLabel(j.status))}</span></td>
+          <td>${escapeHtml(paymentLabel(j.payload?.invoice?.paymentMethod))}</td>
+          <td>${escapeHtml(time)}</td>
+        </tr>`;
+      }).join("");
+
+      tbody.querySelectorAll(".clickable").forEach(el=>{
+        el.addEventListener("click",()=>showJobDetail(el.dataset.jobid));
+      });
+    }
+
+    async function showJobDetail(jobId){
+      const job=await window.printAgent.getInvoiceDetail(jobId);
+      if(!job)return;
+      selectedJob=job;
+      const inv=job.payload?.invoice?.officialNumber||job.payload?.invoice?.number||job.invoiceId;
+      const branch=job.payload?.printerConfiguration?.branch?.name||job.payload?.printerConfiguration?.branch?.nameAr||"-";
+      const printer=job.payload?.printerConfiguration?.localPrinterName||"-";
+      const content=job.payload?.content||"-";
+      const lines=[
+        {dt:t("invoiceNumber"),dd:escapeHtml(inv)},
+        {dt:t("branch"),dd:escapeHtml(branch)},
+        {dt:t("printer"),dd:escapeHtml(printer)},
+        {dt:t("status"),dd:`<span class="status-pill ${statusClass(job.status)}">${escapeHtml(statusLabel(job.status))}</span>`},
+        {dt:t("paymentMethod"),dd:escapeHtml(paymentLabel(job.payload?.invoice?.paymentMethod))},
+        {dt:t("dateTime"),dd:escapeHtml(fmtDate(job.receivedAt||job.payload?.createdAt))},
+        {dt:t("jobType"),dd:escapeHtml(job.payload?.jobType||"-")},
+        {dt:t("attempts"),dd:String(job.attempts||0)},
+        {dt:t("jobId"),dd:escapeHtml(job.id)},
+      ];
+      if(job.outputPath) lines.push({dt:"PDF",dd:escapeHtml(job.outputPath)});
+      if(job.errorCode||job.errorMessage) lines.push({dt:t("error"),dd:`<span style="color:#d64545">${escapeHtml(job.errorCode||"")} ${escapeHtml(job.errorMessage||"")}</span>`});
+      if(job.drawerErrorCode) lines.push({dt:t("drawerError"),dd:`<span style="color:#d64545">${escapeHtml(job.drawerErrorCode)} ${escapeHtml(job.drawerErrorMessage||"")}</span>`});
+      if(content&&content!=="-"&&content.length<500) lines.push({dt:t("contentPreview"),dd:`<pre style="white-space:pre-wrap;font-size:11px;background:#f6f7f9;padding:8px;border-radius:6px;max-height:200px;overflow:auto">${escapeHtml(content)}</pre>`});
+
+      document.getElementById("queueDetailBody").innerHTML=lines.map(l=>`<dl class="detail-row"><dt>${l.dt}</dt><dd>${l.dd}</dd></dl>`).join("");
+      updateQueueActionButtons(job);
+      document.getElementById("queueModal").style.display="flex";
+    }
+
+    function updateQueueActionButtons(job){
+      const isManual=job.status==="WAITING_FOR_MANUAL_ACTION";
+      const isFailed=job.status==="FAILED";
+      const isRejected=job.status==="REJECTED";
+      const isCompleted=["PRINTED","PDF_SAVED","PRINTED_AND_SAVED"].includes(job.status);
+      document.getElementById("queuePrint").style.display=isManual?"inline-block":"none";
+      document.getElementById("queueSavePdf").style.display=isManual?"inline-block":"none";
+      document.getElementById("queuePrintSave").style.display=isManual?"inline-block":"none";
+      document.getElementById("queueRetry").style.display=isFailed?"inline-block":"none";
+      document.getElementById("queueReject").style.display=(!isRejected&&!isCompleted&&job.status!=="PROCESSING")?"inline-block":"none";
+    }
+
+    function closeModal(){document.getElementById("queueModal").style.display="none";selectedJob=null}
+    document.getElementById("closeQueueModal").onclick=closeModal;
+    document.getElementById("closeQueueModalBackdrop").onclick=closeModal;
+
+    async function runQueueAction(action){
+      if(!selectedJob)return;
+      try{
+        const result=action==="REJECT"?await window.printAgent.rejectQueueJob(selectedJob.id):await window.printAgent.processQueueJob(selectedJob.id,action);
+        await renderInvoiceQueue();
+        status=await window.printAgent.getStatus();
+        render();
+        const message=result?.success===false?`${result.errorCode||"FAILED"}: ${result.errorMessage||"Job failed."}`:"Job action completed.";
+        document.getElementById("settingsMessage").textContent=message;
+        if(result?.success===false) alert(message);
+        else closeModal();
+      }catch(e){
+        const message=e.code?`${e.code}: ${e.message}`:e.message;
+        document.getElementById("settingsMessage").textContent=message;
+        alert(message);
+      }
+    }
+
+    document.getElementById("queuePrint").onclick=()=>runQueueAction("PRINT");
+    document.getElementById("queueSavePdf").onclick=()=>runQueueAction("SAVE_PDF");
+    document.getElementById("queuePrintSave").onclick=()=>runQueueAction("PRINT_AND_SAVE");
+    document.getElementById("queueRetry").onclick=()=>runQueueAction("RETRY");
+    document.getElementById("queueReject").onclick=()=>runQueueAction("REJECT");
+
+    document.getElementById("queueSearch").oninput=renderInvoiceQueue;
+    document.getElementById("queueFilter").onchange=renderInvoiceQueue;
+    document.getElementById("refreshQueue").onclick=renderInvoiceQueue;
+
+    const originalLoad=load;
+    load=async function(){
+      await originalLoad();
+      renderInvoiceQueue();
+    };
+
+    window.printAgent.onInvoiceQueue(()=>renderInvoiceQueue());
+    window.printAgent.onStatus(async(s)=>{status=s||await window.printAgent.getStatus();render()});
     window.printAgent.onPrinters(p=>{printers=p;render()});
-    function escapeHtml(v){return String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
-    function escapeAttr(v){return escapeHtml(v).replaceAll("`","")}
+    window.printAgent.onPrintersRefreshing(v=>{isRefreshingPrinters=Boolean(v);render()});
+    window.printAgent.onPrintResult(message=>{document.getElementById("settingsMessage").textContent=message;alert(message)});
+
+    document.getElementById("pairButton").onclick=async()=>{try{const result=await window.printAgent.pairDevice({pairingCode:document.getElementById("pairingCode").value,config:{erpUrl:document.getElementById("pairErpUrl").value,deviceName:document.getElementById("pairDeviceName").value}});document.getElementById("pairMessage").textContent=`Paired: ${result.deviceCode}`;await load()}catch(e){document.getElementById("pairMessage").textContent=e.message}};
+    document.getElementById("refreshPrinters").onclick=async()=>{
+      if(isRefreshingPrinters)return;
+      isRefreshingPrinters=true;
+      render();
+      try{
+        printers=await window.printAgent.getPrinters();
+        status=await window.printAgent.getStatus();
+        render();
+      }catch(e){
+        document.getElementById("printerList").innerHTML=`<span style="color:#d64545">${escapeHtml(e.message||"Unable to refresh printer list.")}</span>`;
+      }finally{
+        isRefreshingPrinters=false;
+        render();
+      }
+    };
+    document.getElementById("testPrinter").onclick=async()=>{
+      try{
+        const result=await window.printAgent.testPrinter({printerName:document.getElementById("printerSelect").value,paperWidth:document.getElementById("paperWidth").value,outputMode:document.getElementById("outputMode").value,outputFolder:document.getElementById("outputFolder").value});
+        if(result?.filePath){
+          document.getElementById("settingsMessage").textContent=`Saved PDF: ${result.filePath}`;
+        }else{
+          document.getElementById("settingsMessage").textContent="Printer test completed.";
+        }
+      }catch(e){
+        const message=e.code?`${e.code}: ${e.message}`:e.message;
+        document.getElementById("settingsMessage").textContent=message;
+        alert(message);
+      }
+    };
+    document.getElementById("outputMode").onchange=updateOutputControls;
+    document.getElementById("chooseOutputFolder").onclick=async()=>{
+      const result=await window.printAgent.chooseOutputFolder();
+      if(!result.canceled){
+        document.getElementById("outputFolder").value=result.folder;
+        status=await window.printAgent.getStatus();
+        render();
+        updateOutputControls();
+      }
+    };
+    document.getElementById("saveSettings").onclick=async()=>{await window.printAgent.saveConfig({startWithWindows:document.getElementById("startWithWindows").checked,mockMode:document.getElementById("mockMode").checked,paused:document.getElementById("paused").checked,outputMode:document.getElementById("outputMode").value,outputFolder:document.getElementById("outputFolder").value,defaultJobAction:document.getElementById("defaultJobAction").value});await load()};
+    document.getElementById("arabic").onclick=()=>{
+      const isRtl=document.body.classList.toggle("rtl");
+      currentLang=isRtl?"ar":"en";
+      document.getElementById("arabic").textContent=isRtl?"English":"العربية";
+      document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(i18n[currentLang][k])el.textContent=i18n[currentLang][k]});
+      document.querySelectorAll("[data-i18n-placeholder]").forEach(el=>{const k=el.getAttribute("data-i18n-placeholder");if(i18n[currentLang][k])el.placeholder=i18n[currentLang][k]});
+      document.querySelectorAll(".queue-table th").forEach((th,idx)=>{
+        const keys=["invoiceNumber","branch","printer","status","paymentMethod","dateTime"];
+        if(keys[idx])th.textContent=i18n[currentLang][keys[idx]]||th.textContent;
+      });
+      renderInvoiceQueue();
+    };
     load();
   </script>
 </body>

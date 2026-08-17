@@ -208,6 +208,7 @@ enum PrintJobType {
   SHIFT_CLOSE_REPORT
   LABEL
   TEST_PRINT
+  OPEN_CASH_DRAWER
 }
 
 enum PrintContentType {
@@ -1120,6 +1121,10 @@ model PrintDevice {
   operatingSystem   String?
   appVersion        String?
   localPrinters     Json?
+  sseStatus         String?
+  lastEventAt       DateTime?
+  lastFallbackPollAt DateTime?
+  lastPrinterRefreshAt DateTime?
   lastConnectedAt   DateTime?
   lastHeartbeatAt   DateTime?
   disabledAt        DateTime?
@@ -1165,6 +1170,10 @@ model PrinterConfiguration {
   autoPrint         Boolean                @default(true)
   enabled           Boolean                @default(true)
   openCashDrawer    Boolean                @default(false)
+  cashDrawerPin     Int                    @default(0)
+  cashDrawerPulseOn Int                    @default(25)
+  cashDrawerPulseOff Int                   @default(250)
+  cashDrawerOpenBeforePrint Boolean         @default(true)
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   productRoutes     ProductPrinterRoute[]
@@ -1227,6 +1236,10 @@ model PrintJob {
   maxAttempts            Int                   @default(5)
   errorCode              String?
   errorMessage           String?
+  openCashDrawer         Boolean               @default(false)
+  cashDrawerOpened       Boolean               @default(false)
+  drawerErrorCode        String?
+  drawerErrorMessage     String?
   idempotencyKey         String                @unique
   createdAt              DateTime              @default(now())
   sentAt                 DateTime?

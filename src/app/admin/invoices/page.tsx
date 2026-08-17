@@ -1,1 +1,4 @@
-import InvoicesPage from "@/components/invoices-page"; export default function Page(){return <InvoicesPage/>}
+import InvoicesPage from "@/components/invoices-page";
+export default function Page() {
+  return <InvoicesPage />;
+}

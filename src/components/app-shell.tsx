@@ -22,6 +22,10 @@ import {
   ShoppingBasket,
   ChartNoAxesCombined,
   Banknote,
+  Building2,
+  Palette,
+  Bell,
+  ShieldCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -99,6 +103,25 @@ export function AppShell({
                 {item.href === "/admin/finance" && active && (
                   <div className="ms-5 ps-3 border-s border-white/10 my-2 space-y-0.5">
                     {financeNav(locale).map((x) => {
+                      const A = x.icon;
+                      const selected = pathname === x.href;
+                      return (
+                        <Link
+                          key={x.href}
+                          href={x.href}
+                          onClick={() => setOpen(false)}
+                          className={`h-9 px-2 flex items-center gap-2 rounded-lg text-xs ${selected ? "text-white bg-white/8" : "text-sidebar-muted hover:text-white"}`}
+                        >
+                          <A size={15} />
+                          {x.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+                {item.href === "/admin/settings" && active && (
+                  <div className="ms-5 ps-3 border-s border-white/10 my-2 space-y-0.5">
+                    {settingsNav(locale).map((x) => {
                       const A = x.icon;
                       const selected = pathname === x.href;
                       return (
@@ -228,6 +251,37 @@ function financeNav(locale: "en" | "ar") {
       href: "/admin/finance/reports",
       label: ar ? "التقارير" : "Reports",
       icon: FileText,
+    },
+  ];
+}
+
+function settingsNav(locale: "en" | "ar") {
+  const ar = locale === "ar";
+  return [
+    {
+      href: "/admin/settings",
+      label: ar ? "الملف التجاري" : "Business profile",
+      icon: Building2,
+    },
+    {
+      href: "/admin/settings/printing",
+      label: ar ? "الطباعة" : "Printing",
+      icon: Printer,
+    },
+    {
+      href: "/admin/settings/branding",
+      label: ar ? "الهوية البصرية" : "Branding",
+      icon: Palette,
+    },
+    {
+      href: "/admin/settings/notifications",
+      label: ar ? "الإشعارات" : "Notifications",
+      icon: Bell,
+    },
+    {
+      href: "/admin/settings/security",
+      label: ar ? "الأمان" : "Security",
+      icon: ShieldCheck,
     },
   ];
 }

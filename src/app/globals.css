@@ -7,7 +7,8 @@
     - src/config/print.ts PRINT_CONFIG.PAPER_SIZE.
     Change all three together when switching to 58mm, 72mm, or 80mm paper.
   */
-  --receipt-paper-width: 60mm;
+  --receipt-width: 60mm;
+  --receipt-paper-width: var(--receipt-width);
   --receipt-safe-padding: 3mm;
   --primary: #f86800;
   --primary-hover: #d95600;
@@ -186,10 +187,139 @@ table {
 #print-root {
   display: none;
 }
+.invoice-page-content {
+  max-width: none;
+}
+.receipt-stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-block: 4px 32px;
+}
+.receipt-fixed,
+.receipt-preview-shell {
+  width: var(--receipt-width);
+  min-width: var(--receipt-width);
+  max-width: var(--receipt-width);
+  flex: 0 0 var(--receipt-width);
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+.receipt-preview-shell > .receipt,
+.receipt-preview-shell .receipt {
+  width: var(--receipt-width) !important;
+  min-width: var(--receipt-width) !important;
+  max-width: var(--receipt-width) !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.receipt-preview-shell .receipt {
+  padding: var(--receipt-safe-padding);
+  box-sizing: border-box;
+  font-family: Arial, Tahoma, "Segoe UI", sans-serif;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #000;
+  background: #fff;
+}
+.receipt-preview-shell .receipt .logo {
+  width: 17mm;
+  height: 17mm;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 2mm;
+}
+.receipt-preview-shell .receipt h1 {
+  font-size: 17px;
+  margin: 0 0 1mm;
+  text-align: center;
+}
+.receipt-preview-shell .receipt p {
+  margin: 0 0 1mm;
+}
+.receipt-preview-shell .receipt header,
+.receipt-preview-shell .receipt footer {
+  text-align: center;
+}
+.receipt-preview-shell .receipt .center {
+  text-align: center;
+}
+.receipt-preview-shell .receipt .en {
+  direction: ltr;
+}
+.receipt-preview-shell .receipt .meta,
+.receipt-preview-shell .receipt .totals {
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  margin: 3mm 0;
+  padding: 2mm 0;
+}
+.receipt-preview-shell .receipt .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 3mm;
+  margin: 1mm 0;
+}
+.receipt-preview-shell .receipt .row span:first-child {
+  flex: 0 0 auto;
+}
+.receipt-preview-shell .receipt .value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: end;
+  max-width: 45mm;
+}
+.receipt-preview-shell .receipt .invoice-number {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+  direction: ltr;
+  text-align: left;
+}
+.receipt-preview-shell .receipt table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.receipt-preview-shell .receipt td {
+  padding: 1.5mm 0;
+  vertical-align: top;
+  border-bottom: 1px dotted #999;
+}
+.receipt-preview-shell .receipt .qty {
+  width: 9mm;
+  font-weight: bold;
+}
+.receipt-preview-shell .receipt .item-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.receipt-preview-shell .receipt .money {
+  text-align: end;
+  white-space: nowrap;
+}
+.receipt-preview-shell .receipt small {
+  display: block;
+  color: #333;
+  margin-top: 1mm;
+}
+.receipt-preview-shell .receipt .strong {
+  font-size: 14px;
+  font-weight: bold;
+}
+.receipt-preview-shell .receipt footer {
+  margin-top: 4mm;
+  font-size: 10px;
+}
 .print-invoice {
   width: var(--receipt-paper-width);
   max-width: var(--receipt-paper-width);
-  min-width: 0;
+  min-width: var(--receipt-paper-width);
   margin: 0;
   padding: var(--receipt-safe-padding);
   box-sizing: border-box;
@@ -585,91 +715,66 @@ button:disabled {
     background: white !important;
     color: black !important;
     overflow: visible !important;
-    width: var(--receipt-paper-width) !important;
-    min-width: 0 !important;
-    max-width: var(--receipt-paper-width) !important;
+    width: var(--receipt-width) !important;
+    min-width: var(--receipt-width) !important;
+    max-width: var(--receipt-width) !important;
     height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
+    min-height: auto !important;
     padding: 0 !important;
-    transform: none !important;
-    zoom: 1 !important;
+    margin: 0 !important;
   }
 
-  body > * {
+  .no-print {
     display: none !important;
   }
 
-  body > #print-root {
+  .invoice-page-content,
+  .receipt-stage {
     display: block !important;
-  }
-
-  body,
-  body * {
-    box-sizing: border-box !important;
-  }
-
-  #print-root,
-  #print-root * {
-    visibility: visible !important;
-  }
-
-  #print-root {
-    width: var(--receipt-paper-width) !important;
-    max-width: var(--receipt-paper-width) !important;
-    min-width: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    width: var(--receipt-width) !important;
+    min-width: var(--receipt-width) !important;
+    max-width: var(--receipt-width) !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    direction: rtl;
-    background: white !important;
+    height: auto !important;
+    max-height: none !important;
   }
 
-  .print-invoice,
-  .print-invoice *,
-  .print-invoice *::before,
-  .print-invoice *::after {
-    box-sizing: border-box !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
+  .receipt-fixed,
+  .receipt-preview-shell,
+  .receipt-preview-shell > .receipt,
+  .receipt-preview-shell .receipt,
   .print-invoice {
     display: block !important;
-    position: relative !important;
-    inset: auto !important;
-    top: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    left: auto !important;
-    float: none !important;
-    clear: both !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    zoom: 1 !important;
+    width: var(--receipt-width) !important;
+    min-width: var(--receipt-width) !important;
+    max-width: var(--receipt-width) !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
     box-shadow: none !important;
-    border: 0 !important;
+    border: 0 !important; 
     border-radius: 0 !important;
     background: white !important;
     color: black !important;
-    direction: rtl;
-    width: var(--receipt-paper-width) !important;
-    min-width: 0 !important;
-    max-width: var(--receipt-paper-width) !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .receipt-fixed,
+  .print-invoice {
     padding: var(--receipt-safe-padding) !important;
-    overflow: visible !important;
-    font-size: 8.5px !important;
-    line-height: 1.35 !important;
+  }
+
+  .receipt-preview-shell {
+    padding: 0 !important;
+  }
+
+  .receipt-preview-shell > .receipt,
+  .receipt-preview-shell .receipt {
+    padding: var(--receipt-safe-padding) !important;
   }
 
   .print-invoice-content {
@@ -684,14 +789,10 @@ button:disabled {
     overflow: visible !important;
   }
 
+  .receipt-fixed *,
+  .receipt-preview-shell *,
   .print-invoice * {
-    position: static !important;
-    float: none !important;
-    transform: none !important;
-    translate: none !important;
-    scale: none !important;
-    zoom: 1 !important;
-    min-width: 0 !important;
+    box-sizing: border-box !important;
     max-width: 100% !important;
     overflow: visible !important;
     overflow-wrap: anywhere !important;
@@ -708,7 +809,9 @@ button:disabled {
     break-inside: avoid;
   }
 
+  .receipt-preview-shell table,
   .print-invoice table {
+    display: table !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -718,17 +821,18 @@ button:disabled {
     overflow: visible !important;
   }
 
+  .receipt-preview-shell th,
+  .receipt-preview-shell td,
   .print-invoice th,
   .print-invoice td {
     min-width: 0 !important;
     max-width: 100% !important;
-    padding: 1mm !important;
-    font-size: 8px !important;
     overflow: visible !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
   }
 
+  .receipt-preview-shell tr,
   .print-invoice tr,
   .print-invoice img {
     break-inside: avoid;

@@ -23,6 +23,10 @@ export const printerSchema = z.object({
   autoPrint: z.boolean().default(true),
   enabled: z.boolean().default(true),
   openCashDrawer: z.boolean().default(false),
+  cashDrawerPin: z.number().int().min(0).max(255).default(0),
+  cashDrawerPulseOn: z.number().int().min(1).max(255).default(25),
+  cashDrawerPulseOff: z.number().int().min(1).max(255).default(250),
+  cashDrawerOpenBeforePrint: z.boolean().default(true),
 });
 
 export const devicePrintersSchema = z.object({
@@ -37,4 +41,9 @@ export const devicePrintersSchema = z.object({
 export const jobFailSchema = z.object({
   errorCode: z.string().min(1).max(80),
   errorMessage: z.string().max(600).optional(),
+});
+
+export const cashDrawerTestSchema = z.object({
+  command: z.enum(["OPEN_CASH_DRAWER"]),
+  printerId: z.string().min(1),
 });

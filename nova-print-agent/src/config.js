@@ -21,7 +21,15 @@ const defaultConfig = {
   paperWidth: 80,
   startWithWindows: true,
   paused: false,
-  mockMode: false
+  mockMode: false,
+  outputMode: "printer",
+  outputFolder: "",
+  defaultJobAction: "SAVE_PDF",
+  continuePrintingIfDrawerFails: true,
+  cashDrawerEnabled: false,
+  cashDrawerPin: 0,
+  cashDrawerPulseOn: 25,
+  cashDrawerPulseOff: 250,
 };
 
 function loadConfig() {

@@ -6,7 +6,7 @@ export type PrintInvoice = Prisma.InvoiceGetPayload<{
   include: {
     cashier: { select: { id: true; name: true } };
     branch: true;
-    items: { include: { addons: true; product: { select: { id: true; categoryId: true; requiresPreparation: true } } } };
+    items: { include: { addons: true; product: { include: { translations: true } } } };
     payments: true;
     kitchenOrder: true;
   };
