@@ -1,0 +1,30 @@
+{
+  "name": "restaurant-erp-print-agent",
+  "version": "1.0.0",
+  "description": "Headless Windows Print & Cash Drawer Agent for Sheikh Al Kar Restaurant ERP",
+  "main": "dist/cli.js",
+  "bin": {
+    "agent": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "node dist/cli.js run",
+    "doctor": "node dist/cli.js doctor",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "escpos",
+    "thermal-printer",
+    "restaurant-erp",
+    "print-agent",
+    "cash-drawer"
+  ],
+  "author": "Sheikh Al Kar ERP Team",
+  "license": "UNLICENSED",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

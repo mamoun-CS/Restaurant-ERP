@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+!.env.production.example
+Restaurant ERP.zip
+nova-print-agent/node_modules
+*.log
+.DS_Store
+Thumbs.db
+tsconfig.tsbuildinfo

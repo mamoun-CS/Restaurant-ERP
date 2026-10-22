@@ -1,4 +1,4 @@
-import { baseHtml, escapeHtml } from "./receipt-template";
+import { baseHtml, escapeHtml, resolvePaperWidthCss } from "./receipt-template";
 
 export type KitchenTicketItem = {
   productName: string;
@@ -15,8 +15,11 @@ export function renderKitchenTicket(input: {
   notes?: string | null;
   items: KitchenTicketItem[];
   locale?: "en" | "ar";
+  paperWidth?: string;
+  customWidthMm?: number | null;
 }) {
   const locale = input.locale || "ar";
+  const widthCss = resolvePaperWidthCss(input.paperWidth, input.customWidthMm);
   const rows = input.items.map((item) => `
     <section class="kitchen-item">
       <div class="line strong"><span class="qty">${item.quantity}x</span><strong>${escapeHtml(item.productName)}</strong></div>
@@ -33,5 +36,5 @@ export function renderKitchenTicket(input: {
       <div class="line"><span>${locale === "ar" ? "الوقت" : "Time"}</span><strong>${new Date().toLocaleString(locale === "ar" ? "ar" : "en")}</strong></div>
     </section>
     ${rows}
-    ${input.notes ? `<footer>${escapeHtml(input.notes)}</footer>` : ""}`);
+    ${input.notes ? `<footer>${escapeHtml(input.notes)}</footer>` : ""}`, widthCss);
 }

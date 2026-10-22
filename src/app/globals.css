@@ -7,7 +7,7 @@
     - src/config/print.ts PRINT_CONFIG.PAPER_SIZE.
     Change all three together when switching to 58mm, 72mm, or 80mm paper.
   */
-  --receipt-width: 60mm;
+  --receipt-width: 80mm;
   --receipt-paper-width: var(--receipt-width);
   --receipt-safe-padding: 3mm;
   --primary: #f86800;

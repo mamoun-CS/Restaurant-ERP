@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "nova-print-agent/**",
+    "print-agent/**",
+    "scripts/**",
     "test/**",
     "next-env.d.ts",
   ]),

@@ -1,9 +1,19 @@
 import type { PrintInvoice } from "./types";
 
-type ReceiptOptions = {
+export type ReceiptOptions = {
   locale?: "en" | "ar";
   reprint?: boolean;
+  paperWidth?: "W58" | "W80" | "A4" | "CUSTOM" | string;
+  customWidthMm?: number | null;
 };
+
+export function resolvePaperWidthCss(paperWidth?: string, customWidthMm?: number | null): string {
+  if (paperWidth === "W58" || paperWidth === "58mm") return "58mm";
+  if (paperWidth === "W80" || paperWidth === "80mm") return "80mm";
+  if (paperWidth === "A4") return "210mm";
+  if ((paperWidth === "CUSTOM" || !paperWidth) && customWidthMm && customWidthMm > 0) return `${customWidthMm}mm`;
+  return "80mm";
+}
 
 const TAX_NUMBER = "310048229";
 const RESTAURANT_NAME_AR = "شيخ الكار";
@@ -18,6 +28,7 @@ export function buildInvoiceReceiptHtml(invoice: PrintInvoice, options: ReceiptO
   const vm = buildInvoiceReceiptViewModel(invoice, options);
   if (!vm.items.length) throw new Error("PRINT_JOB_EMPTY_INVOICE_ITEMS");
   const dir = vm.locale === "ar" ? "rtl" : "ltr";
+  const widthCss = resolvePaperWidthCss(options.paperWidth, options.customWidthMm);
 
   const itemRows = vm.items.map((item) => `
     <tr>
@@ -77,7 +88,7 @@ export function buildInvoiceReceiptHtml(invoice: PrintInvoice, options: ReceiptO
         ${vm.taxNumber ? `<p>${vm.locale === "ar" ? "الرقم الضريبي" : "Tax no."}: <span dir="ltr">${escapeHtml(vm.taxNumber)}</span></p>` : ""}
         ${vm.invoiceReference ? `<p class="invoice-number">${escapeHtml(vm.invoiceReference)}</p>` : ""}
       </footer>
-    </main>`);
+    </main>`, widthCss);
 }
 
 export function buildInvoiceReceiptViewModel(invoice: PrintInvoice, options: ReceiptOptions = {}) {
@@ -138,17 +149,19 @@ export function buildInvoiceReceiptViewModel(invoice: PrintInvoice, options: Rec
   };
 }
 
-export function baseHtml(kind: string, dir: string, body: string) {
+export function baseHtml(kind: string, dir: string, body: string, widthCss = "80mm") {
+  const isSmall = widthCss === "58mm";
   return `<!doctype html><html lang="${dir === "rtl" ? "ar" : "en"}" dir="${dir}"><head><meta charset="utf-8"><style>
-    :root{--receipt-width:60mm}@page{size:60mm auto;margin:0}*{box-sizing:border-box}
+    :root{--receipt-width:${widthCss}}@page{size:${widthCss} auto;margin:0}*{box-sizing:border-box}
     body.receipt-document{width:var(--receipt-width);margin:0;padding:0;background:#fff;color:#000;overflow:visible;font-family:Arial,Tahoma,"Segoe UI",sans-serif}
-    .receipt{width:var(--receipt-width);min-width:var(--receipt-width);max-width:var(--receipt-width);padding:4mm;box-sizing:border-box;font-family:Arial,Tahoma,"Segoe UI",sans-serif;font-size:11px;line-height:1.35;color:#000;background:#fff;overflow:visible;height:auto;max-height:none}
-    .receipt .logo{width:17mm;height:17mm;object-fit:contain;display:block;margin:0 auto 2mm}.receipt h1{font-size:17px;margin:0 0 1mm;text-align:center}.receipt p{margin:0 0 1mm}.receipt header,.receipt footer{text-align:center}
-    .receipt .center{text-align:center}.receipt .en{direction:ltr}.receipt .meta,.receipt .totals{border-top:1px dashed #000;border-bottom:1px dashed #000;margin:3mm 0;padding:2mm 0}
-    .receipt .row{display:flex;justify-content:space-between;align-items:flex-start;gap:3mm;margin:1mm 0}.receipt .row span:first-child{flex:0 0 auto}.receipt .value{overflow-wrap:anywhere;word-break:break-word;text-align:end;max-width:45mm}
+    .receipt,.ticket{width:var(--receipt-width);min-width:var(--receipt-width);max-width:var(--receipt-width);padding:${isSmall ? "2mm" : "4mm"};box-sizing:border-box;font-family:Arial,Tahoma,"Segoe UI",sans-serif;font-size:${isSmall ? "10px" : "11px"};line-height:1.35;color:#000;background:#fff;overflow:visible;height:auto;max-height:none}
+    .receipt .logo{width:${isSmall ? "14mm" : "17mm"};height:${isSmall ? "14mm" : "17mm"};object-fit:contain;display:block;margin:0 auto 2mm}.receipt h1,.ticket h1{font-size:${isSmall ? "15px" : "17px"};margin:0 0 1mm;text-align:center}.receipt p,.ticket p{margin:0 0 1mm}.receipt header,.receipt footer,.ticket header,.ticket footer{text-align:center}
+    .receipt .center{text-align:center}.receipt .en{direction:ltr}.receipt .meta,.receipt .totals,.ticket .meta{border-top:1px dashed #000;border-bottom:1px dashed #000;margin:3mm 0;padding:2mm 0}
+    .receipt .row,.ticket .line{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm;margin:1mm 0}.receipt .row span:first-child,.ticket .line span:first-child{flex:0 0 auto}.receipt .value{overflow-wrap:anywhere;word-break:break-word;text-align:end;max-width:${isSmall ? "32mm" : "45mm"}}
     .receipt .invoice-number{max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;direction:ltr;text-align:left}
-    .receipt table{width:100%;border-collapse:collapse}.receipt td{padding:1.5mm 0;vertical-align:top;border-bottom:1px dotted #999}.receipt .qty{width:9mm;font-weight:bold}.receipt .item-name{overflow-wrap:anywhere;word-break:break-word}.receipt .money{text-align:end;white-space:nowrap}
-    .receipt small{display:block;color:#333;margin-top:1mm}.receipt .strong{font-size:14px;font-weight:bold}.receipt footer{margin-top:4mm;font-size:10px}
+    .receipt table{width:100%;border-collapse:collapse}.receipt td{padding:1.5mm 0;vertical-align:top;border-bottom:1px dotted #999}.receipt .qty,.ticket .qty{width:${isSmall ? "7mm" : "9mm"};font-weight:bold}.receipt .item-name{overflow-wrap:anywhere;word-break:break-word}.receipt .money{text-align:end;white-space:nowrap}
+    .receipt small{display:block;color:#333;margin-top:1mm}.receipt .strong,.ticket .strong{font-size:${isSmall ? "12px" : "14px"};font-weight:bold}.receipt footer{margin-top:4mm;font-size:10px}
+    .kitchen-item{margin:2mm 0;padding-bottom:1.5mm;border-bottom:1px dotted #999}.kitchen-item .note{font-size:10px;font-weight:bold;color:#111;margin-top:1mm}
   </style></head><body class="${kind} receipt-document">${body}</body></html>`;
 }
 

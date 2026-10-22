@@ -1,0 +1,58 @@
+Viewed package.json:1-53
+Listed directory scripts
+Viewed start-all.bat:1-27
+
+لجعل النظام **يعيد تشغيل نفسه تلقائياً فور تشغيل كمبيوتر المطعم** حتى لو انقطعت الكهرباء أو أُعيد تشغيل الجهاز فجأة وبدون أي تدخل يدوي، سنقوم بتجهيز سكريبت ذكي وربطه مع إقلاع نظام ويندوز.
+
+السكريبت سيقوم بـ:
+1. انتظار استقرار الاتصال بقاعدة البيانات والشبكة (Health Check).
+2. تشغيل السيرفر الرئيسي (Next.js ERP).
+3. تشغيل وكيل الطباعة (Print Agent).
+4. تشغيل نفق الاتصال السحابي (Cloudflare Tunnel) تلقائياً لكي يظل جوال المدير متصلاً دون انقطاع.
+
+---
+
+### الخطوة 1: إنشاء ملف التشغيل التلقائي الذكي
+
+سننشئ ملفاً مخصصاً باسم [`auto-start-service.bat`](file:///c:/Users/mamou/Desktop/Pre%20code/Restaurant%20ERP/scripts/auto-start-service.bat) داخل مجلد `scripts/`:
+
+
+
+Created auto-start-service.bat
+
+سننشئ أيضاً سكريبت PowerShell بسيط لتسجيل هذه العملية داخل **مهام ويندوز المجدولة (Windows Task Scheduler)**، لكي تعمل بمجرد إقلاع الويندوز مباشرة (Startup):
+
+
+
+Created register-autostart.ps1
+
+تم إنشاء نظام التشغيل والتعافي التلقائي بنجاح. إليك طريقة تفعيله بخطوة واحدة:
+
+---
+
+### كيف تُفعّل التشغيل التلقائي مع إقلاع الجهاز؟
+
+اختر إحدى الطريقتين البسيطتين:
+
+#### الطريقة الأولى (الأسهل بدون أوامر):
+1. اضغط على أزرار **`Windows + R`** في لوحة المفاتيح.
+2. اكتب: `shell:startup` ثم اضغط **Enter** (سيفتح لك مجلد بدء التشغيل الخاص بويندوز).
+3. اضغط بزر الفأرة الأيمن داخل المجلد واصنع **اختصار (Shortcut)** يشير إلى الملف:
+   [`scripts\auto-start-service.bat`](file:///c:/Users/mamou/Desktop/Pre%20code/Restaurant%20ERP/scripts/auto-start-service.bat)
+
+---
+
+#### الطريقة الثانية (تلقائياً كمهمة رسمية في ويندوز Task Scheduler):
+افتح **PowerShell كمسؤول (Run as Administrator)** ونفذ الأمر التالي لمرة واحدة فقط:
+```powershell
+powershell -ExecutionPolicy Bypass -File "c:\Users\mamou\Desktop\Pre code\Restaurant ERP\scripts\register-autostart.ps1"
+```
+
+---
+
+### ماذا يحدث الآن عند انقطاع الكهرباء أو إعادة تشغيل الجهاز؟
+1. فور إقلاع الويندوز، سيعمل سكريبت [`auto-start-service.bat`](file:///c:/Users/mamou/Desktop/Pre%20code/Restaurant%20ERP/scripts/auto-start-service.bat) في الخلفية.
+2. يتحقق من جاهزية المشروع، ويفحص اتصال قاعدة البيانات Prisma ويزامن الجداول بدون مسح البيانات.
+3. يُشغّل سيرفر الـ ERP على المنفذ `3000`.
+4. يُشغّل وكيل الطابعات المباشر على المنفذ `4099`.
+5. يُشغّل النفق السحابي لربط جوال المدير فوراً، لكي يتمكن من متابعة المطعم مباشرة حتى أثناء عدم وجوده.

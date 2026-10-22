@@ -201,6 +201,12 @@ enum PaperWidth {
   CUSTOM
 }
 
+enum PrinterConnectionType {
+  USB
+  LAN
+  SERIAL
+}
+
 enum PrintJobType {
   CUSTOMER_RECEIPT
   KITCHEN_TICKET
@@ -1162,8 +1168,11 @@ model PrinterConfiguration {
   printDeviceId     String
   printDevice       PrintDevice            @relation(fields: [printDeviceId], references: [id], onDelete: Cascade)
   printerType       PrinterType
+  connectionType    PrinterConnectionType  @default(USB)
   localPrinterName  String
   displayName       String
+  ipAddress         String?
+  port              Int?                   @default(9100)
   paperWidth        PaperWidth             @default(W80)
   customWidthMm     Int?
   copies            Int                    @default(1)

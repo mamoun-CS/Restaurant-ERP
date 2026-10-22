@@ -1,6 +1,47 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 import Link from "next/link";
+
+// ── Cart Persistence Helpers ────────────────────────────────────────────────
+const CART_STORAGE_KEY = "pos_cart_state";
+
+function saveCartToStorage(cart: CartItem[]) {
+  try {
+    const serializable = cart.map((item) => ({
+      key: item.key,
+      product: item.product,
+      quantity: item.quantity,
+      size: item.size,
+      addons: item.addons,
+    }));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(serializable));
+  } catch {
+    // Storage full or unavailable — non-fatal
+  }
+}
+
+function loadCartFromStorage(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: CartItem) =>
+        item.key && item.product && typeof item.quantity === "number" && item.quantity > 0,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function clearCartStorage() {
+  try {
+    localStorage.removeItem(CART_STORAGE_KEY);
+  } catch {
+    // non-fatal
+  }
+}
 import { useEffect, useState } from "react";
 import {
   Banknote,
@@ -17,12 +58,18 @@ import {
   Store,
   Trash2,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/components/language-provider";
 import { products } from "@/lib/demo-data";
+import { OfflineIndicator } from "@/components/offline-indicator";
+import { initAndSyncProductCatalog, syncAppMetadata } from "@/lib/offline/product-sync";
+import { saveSaleLocally } from "@/lib/offline/offline-sales";
+import { syncService } from "@/lib/offline/sync-service";
+import type { LocalProduct } from "@/lib/offline/types";
 
-type Product = (typeof products)[number];
+type Product = (typeof products)[number] | LocalProduct;
 type CartItem = {
   key: string;
   product: Product;
@@ -43,13 +90,21 @@ type PaymentChoice = "CASH" | "CREDIT_CARD";
 type DeliveryMethod = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
 export default function PosPage() {
   const { t, locale, setLocale } = useLanguage();
+  const [productList, setProductList] = useState<LocalProduct[]>(products);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    // Restore cart from localStorage on initial mount (survives power cuts)
+    if (typeof window !== "undefined") {
+      return loadCartFromStorage();
+    }
+    return [];
+  });
   const [drawer, setDrawer] = useState(false);
   const [custom, setCustom] = useState<Product | null>(null);
   const [checkingOut, setCheckingOut] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentChoice>("CASH");
   const [deliveryMethod, setDeliveryMethod] =
     useState<DeliveryMethod>("TAKEAWAY");
@@ -57,12 +112,41 @@ export default function PosPage() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [customer, setCustomer] = useState({ name: "", phone: "" });
-  const cats = ["All", ...new Set(products.map((p) => p.category))];
-  const filtered = products.filter(
+  const cats = ["All", ...new Set(productList.map((p) => p.category))];
+  const filtered = productList.filter(
     (p) =>
       (category === "All" || p.category === category) &&
       (p.nameEn + p.nameAr).toLowerCase().includes(search.toLowerCase()),
   );
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => null);
+    }
+    // Request persistent storage so the browser won't silently evict IndexedDB
+    // (offline sales, sync queue, product catalog). This is critical for data safety.
+    if (typeof navigator !== "undefined" && navigator.storage?.persist) {
+      navigator.storage.persist().catch(() => null);
+    }
+    void initAndSyncProductCatalog().then((items) => {
+      if (items && items.length > 0) {
+        setProductList(items);
+      }
+    });
+    void syncAppMetadata();
+  }, []);
+
+  // Persist cart to localStorage whenever it changes (debounced 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (cart.length > 0) {
+        saveCartToStorage(cart);
+      } else {
+        clearCartStorage();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [cart]);
   function add(
     product: Product,
     size?: CartItem["size"],
@@ -158,14 +242,69 @@ export default function PosPage() {
     if (checkingOut || !cart.length) return;
     setCheckingOut(true);
     try {
-      const transactionId = editingInvoiceId || crypto.randomUUID();
-      const payload = {
+      if (editingInvoiceId) {
+        const payload = {
+          orderType: deliveryMethod,
+          clientTransactionId: editingInvoiceId,
+          idempotencyKey: editingInvoiceId,
+          customerName: customer.name || undefined,
+          customerPhone: customer.phone || undefined,
+          customerNotes: orderNotes.trim() || undefined,
+          items: cart.map((x) => ({
+            productId: x.product.id,
+            categoryId: x.product.category,
+            productName: locale === "ar" ? x.product.nameAr : x.product.nameEn,
+            quantity: x.quantity,
+            unitPrice:
+              x.product.price +
+              (x.size?.delta || 0) +
+              x.addons.reduce((a, b) => a + b.price, 0),
+            selectedSize: x.size?.[locale === "ar" ? "nameAr" : "nameEn"],
+            addons: x.addons.map((a) => ({
+              name: locale === "ar" ? a.nameAr : a.nameEn,
+              price: a.price,
+            })),
+          })),
+          discountAmount: discount,
+          payments: [
+            {
+              method: paymentMethod,
+              currencyCode: "ILS",
+              amount: total,
+              changeAmount: 0,
+              ...(paymentMethod === "CREDIT_CARD"
+                ? { cardType: "VISA", transactionReference: `POS-${Date.now()}` }
+                : {}),
+            },
+          ],
+        };
+        const res = await fetch(
+          `/api/invoices/${encodeURIComponent(editingInvoiceId)}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
+        if (!res.ok) {
+          alert(data?.message || data?.error || t("checkoutFailed"));
+          return;
+        }
+        clearCartStorage();
+        window.location.href = `/invoice/${data.number}`;
+        return;
+      }
+
+      // Offline-First Flow:
+      // 1. Save sale, items, and pending sync queue atomically in local IndexedDB
+      const savedSale = await saveSaleLocally({
         orderType: deliveryMethod,
-        clientTransactionId: transactionId,
-        idempotencyKey: transactionId,
         customerName: customer.name || undefined,
         customerPhone: customer.phone || undefined,
         customerNotes: orderNotes.trim() || undefined,
+        paymentMethod,
         items: cart.map((x) => ({
           productId: x.product.id,
           categoryId: x.product.category,
@@ -181,7 +320,6 @@ export default function PosPage() {
             price: a.price,
           })),
         })),
-        discountAmount: discount,
         payments: [
           {
             method: paymentMethod,
@@ -193,35 +331,28 @@ export default function PosPage() {
               : {}),
           },
         ],
-      };
-      const res = await fetch(
-        editingInvoiceId
-          ? `/api/invoices/${encodeURIComponent(editingInvoiceId)}`
-          : "/api/invoices",
-        {
-          method: editingInvoiceId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
+      });
+
+      // 2. Prepare auto-print token in session storage
+      const printToken = crypto.randomUUID();
+      const invoiceRef = savedSale.temporaryNumber;
+      sessionStorage.setItem(
+        autoPrintStorageKey(invoiceRef, savedSale.clientTransactionId),
+        printToken,
       );
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-      if (!res.ok) {
-        if (res.status === 409) window.location.href = "/cash/open";
-        else alert(data?.message || data?.error || t("checkoutFailed"));
-        return;
+
+      // 3. Trigger cloud synchronization in the background (non-blocking)
+      if (syncService) {
+        void syncService.triggerSync();
       }
-      const invoiceUrl = `/invoice/${data.number}`;
-      if (!editingInvoiceId) {
-        const printToken = crypto.randomUUID();
-        sessionStorage.setItem(
-          autoPrintStorageKey(String(data.number), transactionId),
-          printToken,
-        );
-        window.location.href = `${invoiceUrl}?autoPrint=1&tx=${encodeURIComponent(transactionId)}&printToken=${encodeURIComponent(printToken)}`;
-        return;
-      }
-      window.location.href = invoiceUrl;
+
+      // 4. Show visual confirmation, clear cart & storage, then navigate
+      setSavedNotice(invoiceRef);
+      setCart([]);
+      clearCartStorage();
+      setTimeout(() => {
+        window.location.href = `/invoice/${encodeURIComponent(invoiceRef)}?autoPrint=1&tx=${encodeURIComponent(savedSale.clientTransactionId)}&printToken=${encodeURIComponent(printToken)}`;
+      }, 500);
     } catch (error) {
       alert(error instanceof Error ? error.message : t("checkoutFailed"));
     } finally {
@@ -253,6 +384,11 @@ export default function PosPage() {
           <ChevronDown size={15} />
         </div>
         <div className="ms-auto flex items-center gap-2">
+          <OfflineIndicator
+            onSelectSaleForReprint={(sale) => {
+              window.location.href = `/invoice/${encodeURIComponent(sale.officialNumber || sale.temporaryNumber)}`;
+            }}
+          />
           <span className="hidden sm:flex items-center gap-2 text-xs text-sidebar-muted me-2">
             <Clock3 size={15} />
             <span suppressHydrationWarning>
@@ -457,6 +593,22 @@ export default function PosPage() {
           onClose={() => setConfirming(false)}
           onConfirm={checkout}
         />
+      )}
+      {savedNotice && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center animate-in fade-in">
+          <div className="card p-6 flex flex-col items-center gap-3 shadow-2xl max-w-sm text-center">
+            <div className="size-14 rounded-full bg-emerald-500/20 text-emerald-500 grid place-items-center">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-text">
+              {locale === "ar" ? "تم حفظ الفاتورة بنجاح ✓" : "Sale Saved Successfully ✓"}
+            </h3>
+            <p className="text-xs text-muted font-mono">{savedNotice}</p>
+            <p className="text-xs text-muted">
+              {locale === "ar" ? "جارٍ تحضير الإيصال للطباعة..." : "Preparing receipt for printing..."}
+            </p>
+          </div>
+        </div>
       )}
     </main>
   );

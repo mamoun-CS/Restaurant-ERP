@@ -13,6 +13,12 @@ type Settings = {
     shiftNumber: string;
     carryovers: { currencyCode: string; amount: string }[];
   };
+  shift?: {
+    id: string;
+    shiftNumber: string;
+    register?: { number: string };
+    branch?: { name: string };
+  } | null;
 };
 type Denom = {
   code: string;
@@ -116,9 +122,17 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMessage(errorText(data.error || "Unable to save shift"));
+      if (res.status === 409 || data.code === "CASH_SHIFT_ALREADY_OPEN") {
+        setMessage(
+          ar
+            ? "يوجد شفت مفتوح بالفعل على هذا الصندوق أو لهذا الكاشير. لا يمكن فتح شفتين في نفس الوقت."
+            : "An open shift already exists for this register or cashier. Two shifts cannot be open simultaneously."
+        );
+      } else {
+        setMessage(errorText(data.message || data.error || "Unable to save shift"));
+      }
       return;
     }
     window.location.href =
@@ -190,6 +204,28 @@ export function CashShiftPage({ mode }: { mode: "open" | "close" }) {
             />
           )}
         </div>
+        {mode === "open" && settings?.shift && (
+          <div className="card p-4 mb-5 border-s-4 border-s-amber-500 bg-amber-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+            <div>
+              <b className="text-amber-400 block text-sm">
+                {ar ? "تنبيه: يوجد شفت مفتوح حالياً!" : "Notice: An open shift is already active!"}
+              </b>
+              <p className="text-xs text-muted mt-1">
+                {ar
+                  ? `رقم الشفت: ${settings.shift.shiftNumber} · لا يمكن فتح شفت جديد قبل إغلاق الشفت الحالي.`
+                  : `Shift #${settings.shift.shiftNumber} is currently open. You cannot open another shift until this one is closed.`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link href="/pos" className="btn-primary !h-8 !px-3 text-xs">
+                {ar ? "الانتقال لنقطة البيع (POS)" : "Go to POS"}
+              </Link>
+              <Link href="/cash/close" className="btn-secondary !h-8 !px-3 text-xs">
+                {ar ? "إغلاق الشفت" : "Close Shift"}
+              </Link>
+            </div>
+          </div>
+        )}
         <section className="card p-4 mb-5 grid md:grid-cols-3 gap-3 text-sm">
           <div>
             <span className="text-muted">

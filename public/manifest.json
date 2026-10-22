@@ -1,0 +1,19 @@
+{
+  "name": "شيخ الكار | Restaurant ERP & POS",
+  "short_name": "شيخ الكار POS",
+  "description": "نظام نقاط البيع وإدارة المطاعم - يعمل دون إنترنت",
+  "start_url": "/pos",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#111827",
+  "theme_color": "#F86800",
+  "icons": [
+    {
+      "src": "/brand/sheikh-al-kar-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

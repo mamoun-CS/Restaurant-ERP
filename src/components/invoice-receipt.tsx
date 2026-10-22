@@ -5,6 +5,8 @@ import { ArrowLeft, CheckCircle2, Globe2, Printer, RefreshCw } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLanguage } from "@/components/language-provider";
+import { getSaleByNumberOrId, markSalePrinted } from "@/lib/offline/offline-sales";
+import type { OfflineSale } from "@/lib/offline/types";
 
 type Invoice = {
   id?: string;
@@ -53,6 +55,46 @@ type PrintState = {
   status?: "PENDING" | "SENT" | "PROCESSING" | "PRINTED" | "FAILED" | "CANCELLED";
 };
 
+function mapOfflineSaleToInvoice(sale: OfflineSale): Invoice {
+  return {
+    id: sale.id,
+    number: sale.officialNumber || sale.temporaryNumber,
+    createdAt: sale.createdAt,
+    subtotal: sale.subtotal,
+    discountAmount: sale.discountAmount,
+    taxAmount: sale.taxAmount,
+    totalAmount: sale.totalAmount,
+    grandTotal: sale.grandTotal,
+    customerName: sale.customerName,
+    customerNotes: sale.customerNotes,
+    orderType: sale.orderType,
+    paymentMethod: sale.paymentMethod,
+    cashier: { name: sale.cashierName || "Cashier" },
+    branch: {
+      name: "Main Branch",
+      nameAr: "الفرع الرئيسي",
+      address: "Ramallah, Palestine",
+      phone: "+970 59 123 4567",
+    },
+    payments: (sale.payments || []).map((p) => ({
+      method: p.method,
+      status: "COMPLETED",
+      amount: p.amount,
+      currencyCode: p.currencyCode,
+    })),
+    items: sale.items.map((item) => ({
+      productNameSnapshot: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      selectedSizeSnapshot: item.selectedSize,
+      addons: (item.addons || []).map((a) => ({
+        nameSnapshot: a.name,
+        priceSnapshot: a.price,
+      })),
+    })),
+  };
+}
+
 export default function InvoiceReceipt({ number }: { number: string }) {
   const { t, locale, setLocale } = useLanguage();
   const searchParams = useSearchParams();
@@ -71,19 +113,48 @@ export default function InvoiceReceipt({ number }: { number: string }) {
   );
 
   useEffect(() => {
-    fetch(`/api/invoices/${encodeURIComponent(number)}`, { cache: "no-store" })
-      .then(async (response) => {
+    let isMounted = true;
+
+    async function loadInvoice() {
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      // If offline or clearly an offline reference, check local IndexedDB first
+      if (number.startsWith("OFFLINE-") || isOffline) {
+        const local = await getSaleByNumberOrId(number).catch(() => null);
+        if (local && isMounted) {
+          setData(mapOfflineSaleToInvoice(local));
+          return;
+        }
+      }
+
+      // Try fetching from server
+      try {
+        const response = await fetch(`/api/invoices/${encodeURIComponent(number)}`, {
+          cache: "no-store",
+        });
         const payload = await response.json().catch(() => null);
-        if (!response.ok)
-          throw new Error(
-            payload?.message || payload?.error || "Invoice not found",
-          );
-        setData(payload);
-      })
-      .catch((err) =>
-        setError(err instanceof Error ? err.message : "Invoice not found"),
-      );
-  }, [number]);
+        if (response.ok && payload && isMounted) {
+          setData(payload);
+          return;
+        }
+      } catch {
+        // Network failure, continue to local fallback
+      }
+
+      // Fallback: check local IndexedDB for synced or pending record
+      const local = await getSaleByNumberOrId(number).catch(() => null);
+      if (local && isMounted) {
+        setData(mapOfflineSaleToInvoice(local));
+      } else if (isMounted) {
+        setError(locale === "ar" ? "الفاتورة غير موجودة." : "Invoice not found.");
+      }
+    }
+
+    void loadInvoice();
+    return () => {
+      isMounted = false;
+    };
+  }, [number, locale]);
 
   const sendToPrintAgent = useCallback(async (mode: "PRINT" | "REPRINT") => {
     if (!data || inFlightPrint.current) return;
@@ -194,10 +265,37 @@ export default function InvoiceReceipt({ number }: { number: string }) {
     sessionStorage.removeItem(storageKey);
     const cleanUrl = `${window.location.pathname}${window.location.hash}`;
     window.history.replaceState(window.history.state, "", cleanUrl);
-    window.setTimeout(() => {
-      void sendToPrintAgent("PRINT");
-    }, 0);
-  }, [data, searchParams, sendToPrintAgent]);
+
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    if (isOffline) {
+      window.setTimeout(() => {
+        window.print();
+        if (data.id) void markSalePrinted(data.id);
+        setPrintState({
+          loading: false,
+          message: locale === "ar" ? "تمت الطباعة بنجاح عبر المتصفح (دون إنترنت)." : "Printed successfully via browser (offline).",
+          tone: "success",
+        });
+      }, 100);
+    } else {
+      window.setTimeout(() => {
+        void sendToPrintAgent("PRINT");
+      }, 0);
+    }
+  }, [data, searchParams, sendToPrintAgent, locale]);
+
+  const handleDirectBrowserPrint = useCallback(async () => {
+    if (!data) return;
+    window.print();
+    if (data.id) {
+      await markSalePrinted(data.id).catch(() => null);
+    }
+    setPrintState({
+      loading: false,
+      message: locale === "ar" ? "تم إرسال أمر الطباعة إلى الطابعة." : "Print command sent to printer.",
+      tone: "success",
+    });
+  }, [data, locale]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -215,24 +313,34 @@ export default function InvoiceReceipt({ number }: { number: string }) {
             {t("language")}
           </button>
           <button
-            disabled={!data || printState.loading}
-            onClick={() => void sendToPrintAgent("PRINT")}
+            disabled={!data}
+            onClick={() => void handleDirectBrowserPrint()}
             className="btn-primary flex gap-2 items-center"
+            title={locale === "ar" ? "طباعة الإيصال مباشرة عبر طابعة المتصفح (تعمل دون إنترنت)" : "Print directly via browser printer (works offline)"}
           >
-            {printState.loading ? (
-              <RefreshCw className="animate-spin" size={17} />
-            ) : (
-              <Printer size={17} />
-            )}
-            {locale === "ar" ? "طباعة الفاتورة" : "Print Invoice"}
+            <Printer size={17} />
+            {locale === "ar" ? "طباعة الإيصال (حراري)" : "Print Receipt (Thermal)"}
           </button>
           <button
             disabled={!data || printState.loading}
-            onClick={() => void sendToPrintAgent("REPRINT")}
+            onClick={() => void sendToPrintAgent("PRINT")}
+            className="btn-secondary hidden sm:flex gap-2 items-center text-xs"
+            title={locale === "ar" ? "إرسال إلى وكيل الطباعة Nova" : "Send to Nova Print Agent"}
+          >
+            {printState.loading ? (
+              <RefreshCw className="animate-spin" size={15} />
+            ) : (
+              <Printer size={15} />
+            )}
+            {locale === "ar" ? "وكيل الطباعة" : "Print Agent"}
+          </button>
+          <button
+            disabled={!data}
+            onClick={() => void handleDirectBrowserPrint()}
             className="btn-secondary flex gap-2 items-center"
           >
             <Printer size={17} />
-            {locale === "ar" ? "إعادة الطباعة" : "Reprint Invoice"}
+            {locale === "ar" ? "إعادة الطباعة" : "Reprint"}
           </button>
         </div>
       </header>

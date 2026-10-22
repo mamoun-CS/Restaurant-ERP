@@ -12,7 +12,6 @@ type ReportedPrinter = {
 };
 
 export async function createPrintJobsForInvoice(tx: Tx, invoice: PrintInvoice) {
-  const receiptHtml = createReceiptHtmlOrThrow(invoice);
   const jobs = [];
   const cashierPrinter = await tx.printerConfiguration.findFirst({
     where: { branchId: invoice.branchId, printerType: "CASHIER", enabled: true, autoPrint: true },
@@ -20,6 +19,10 @@ export async function createPrintJobsForInvoice(tx: Tx, invoice: PrintInvoice) {
   });
 
   if (cashierPrinter) {
+    const receiptHtml = createReceiptHtmlOrThrow(invoice, {
+      paperWidth: cashierPrinter.paperWidth,
+      customWidthMm: cashierPrinter.customWidthMm,
+    });
     const isCashPayment = invoice.payments?.some((payment) => payment.method === "CASH") || invoice.paymentMethod === "CASH";
     jobs.push(await tx.printJob.upsert({
       where: { idempotencyKey: `invoice:${invoice.id}:receipt:${cashierPrinter.id}` },
@@ -60,6 +63,8 @@ export async function createPrintJobsForInvoice(tx: Tx, invoice: PrintInvoice) {
           orderType: invoice.orderType,
           cashierName: invoice.cashier.name,
           notes: invoice.customerNotes,
+          paperWidth: group.printer.paperWidth,
+          customWidthMm: group.printer.customWidthMm,
           items: group.items.map((item) => ({
             productName: item.productNameSnapshot,
             quantity: item.quantity,
@@ -97,7 +102,11 @@ export async function createCustomerReceiptPrintJob(
     ? `invoice:${invoice.id}:receipt:reprint:${Date.now()}`
     : `invoice:${invoice.id}:receipt:${cashierPrinter.id}`;
 
-  const content = createReceiptHtmlOrThrow(invoice, { reprint: options.reprint });
+  const content = createReceiptHtmlOrThrow(invoice, {
+    reprint: options.reprint,
+    paperWidth: cashierPrinter.paperWidth,
+    customWidthMm: cashierPrinter.customWidthMm,
+  });
 
   return tx.printJob.upsert({
     where: { idempotencyKey },
@@ -120,10 +129,18 @@ export async function createCustomerReceiptPrintJob(
   });
 }
 
-function createReceiptHtmlOrThrow(invoice: PrintInvoice, options: { reprint?: boolean } = {}) {
+function createReceiptHtmlOrThrow(
+  invoice: PrintInvoice,
+  options: { reprint?: boolean; paperWidth?: string; customWidthMm?: number | null } = {},
+) {
   if (!invoice) throw new Error("INVOICE_NOT_FOUND");
   if (!invoice.items?.length) throw new Error("PRINT_JOB_EMPTY_INVOICE_ITEMS");
-  const content = buildInvoiceReceiptHtml(invoice, { locale: "ar", reprint: options.reprint });
+  const content = buildInvoiceReceiptHtml(invoice, {
+    locale: "ar",
+    reprint: options.reprint,
+    paperWidth: options.paperWidth,
+    customWidthMm: options.customWidthMm,
+  });
   if (!content.trim()) throw new Error("PRINT_JOB_EMPTY_HTML");
   console.log({
     event: "PRINT_JOB_CONTENT_CREATED",

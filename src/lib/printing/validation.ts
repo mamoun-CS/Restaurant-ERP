@@ -11,14 +11,19 @@ export const pairDeviceSchema = z.object({
   appVersion: z.string().max(40).optional(),
 });
 
+export const printerConnectionTypeSchema = z.enum(["USB", "LAN", "SERIAL"]);
+
 export const printerSchema = z.object({
   branchId: z.string().min(1),
   printDeviceId: z.string().min(1),
   printerType: z.enum(["CASHIER", "KITCHEN", "BAR", "LABEL", "REPORT"]),
+  connectionType: printerConnectionTypeSchema.default("USB"),
   localPrinterName: z.string().min(1).max(180),
   displayName: z.string().min(1).max(120),
+  ipAddress: z.string().max(120).nullable().optional(),
+  port: z.number().int().min(1).max(65535).default(9100),
   paperWidth: z.enum(["W58", "W80", "A4", "CUSTOM"]).default("W80"),
-  customWidthMm: z.number().int().positive().optional(),
+  customWidthMm: z.number().int().positive().nullable().optional(),
   copies: z.number().int().min(1).max(5).default(1),
   autoPrint: z.boolean().default(true),
   enabled: z.boolean().default(true),
@@ -27,6 +32,23 @@ export const printerSchema = z.object({
   cashDrawerPulseOn: z.number().int().min(1).max(255).default(25),
   cashDrawerPulseOff: z.number().int().min(1).max(255).default(250),
   cashDrawerOpenBeforePrint: z.boolean().default(true),
+}).superRefine((val, ctx) => {
+  if (val.connectionType === "LAN") {
+    if (!val.ipAddress || !val.ipAddress.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ipAddress"],
+        message: "IP address is required for LAN printers",
+      });
+    }
+  }
+  if (val.paperWidth === "CUSTOM" && (!val.customWidthMm || val.customWidthMm <= 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["customWidthMm"],
+      message: "Custom width in mm is required when CUSTOM paper width is selected",
+    });
+  }
 });
 
 export const devicePrintersSchema = z.object({

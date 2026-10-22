@@ -1,0 +1,84 @@
+services:
+  # ── PostgreSQL Database ──────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: restaurant_erp_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMeSecurePassword123!}
+      POSTGRES_DB: ${POSTGRES_DB:-restaurant_erp}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-restaurant_erp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp_network
+
+  # ── Restaurant ERP Web App (Next.js) ─────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: restaurant_erp_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ChangeMeSecurePassword123!}@db:5432/${POSTGRES_DB:-restaurant_erp}?schema=public"
+      AUTH_SECRET: ${AUTH_SECRET}
+      APP_URL: ${APP_URL:-https://${DOMAIN}}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-https://${DOMAIN}}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://${DOMAIN}}
+      NEXT_PUBLIC_PRINTING_ENABLED: ${NEXT_PUBLIC_PRINTING_ENABLED:-true}
+      PRINT_PAIRING_CODE_EXPIRATION_MINUTES: 10
+      PRINT_DEVICE_OFFLINE_SECONDS: 90
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sheikh Al Kar}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@${DOMAIN}}
+    networks:
+      - erp_network
+
+  # ── Caddy Reverse Proxy & Automatic SSL ──────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: restaurant_erp_caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 QUIC
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    networks:
+      - erp_network
+
+volumes:
+  postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  caddy_logs:
+    driver: local
+
+networks:
+  erp_network:
+    driver: bridge

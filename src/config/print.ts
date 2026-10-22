@@ -4,8 +4,8 @@
 // ===============================
 
 export const PRINT_CONFIG = {
-  // Keep this synchronized with --receipt-width and the literal @page size in src/app/globals.css.
-  PAPER_SIZE: "60mm", // Examples: 58mm, 60mm, 72mm, 80mm
+  // Follows PrinterConfiguration.paperWidth (default W80 / 80mm)
+  PAPER_SIZE: "80mm", // Examples: 58mm, 80mm, custom
 
   AUTO_PRINT_DELAY: 500, // milliseconds
 

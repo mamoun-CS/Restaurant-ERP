@@ -41,7 +41,21 @@ export async function POST(request: Request) {
   const session = { userId:user.id, name:user.name, email:user.email, role:user.role, branchId:user.branchId ?? "" };
   await db.user.update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() } });
   const token = await createToken(session);
-  const response = NextResponse.json({ role: user.role, redirectTo: user.role === "ADMIN" ? "/admin" : "/cash" });
-  response.cookies.set("erp_session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 8, path: "/" });
+  const isHttps = process.env.APP_URL?.startsWith("https://") ?? false;
+  const secureCookie = process.env.COOKIE_SECURE !== undefined
+    ? process.env.COOKIE_SECURE === "true"
+    : isHttps;
+  const response = NextResponse.json({
+    role: user.role,
+    redirectTo: user.role === "ADMIN" ? "/admin" : "/cash",
+    forcePasswordChange: Boolean(user.forcePasswordChange),
+  });
+  response.cookies.set("erp_session", token, {
+    httpOnly: true,
+    secure: secureCookie,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 8,
+    path: "/",
+  });
   return response;
 }
