@@ -43,6 +43,10 @@ class SyncService {
     if (this.initialized || typeof window === "undefined") return;
     this.initialized = true;
 
+    // A tab may have been closed or crashed after marking a sale SYNCING.
+    // Re-queue those durable records so they can never be stranded.
+    void this.recoverInterruptedSales();
+
     // Periodic sync attempt every 20 seconds while app is active
     this.syncTimer = setInterval(() => {
       void this.checkConnectionAndSync();
@@ -54,6 +58,27 @@ class SyncService {
     // Cleanup old synced sales from IndexedDB (older than 7 days)
     // to prevent unbounded storage growth on the cashier device
     void this.cleanupOldSyncedSales();
+  }
+
+  private async recoverInterruptedSales() {
+    if (!localDb) return;
+    try {
+      const interrupted = await localDb.sales.where("syncStatus").equals("SYNCING").toArray();
+      if (!interrupted.length) return;
+      await localDb.transaction("rw", [localDb.sales, localDb.syncQueue], async () => {
+        for (const sale of interrupted) {
+          await localDb.sales.update(sale.id, { syncStatus: "PENDING", syncError: "Sync interrupted; queued for retry." });
+          const existing = await localDb.syncQueue.where("saleId").equals(sale.id).first();
+          if (existing?.id) {
+            await localDb.syncQueue.update(existing.id, { status: "PENDING", nextRetryAt: Date.now(), updatedAt: new Date().toISOString() });
+          } else {
+            await localDb.syncQueue.add({ saleId: sale.id, status: "PENDING", attempts: sale.syncAttempts || 0, nextRetryAt: Date.now(), createdAt: sale.createdAt, updatedAt: new Date().toISOString() });
+          }
+        }
+      });
+    } catch (error) {
+      console.warn("Recovery of interrupted syncs failed", error);
+    }
   }
 
   private async cleanupOldSyncedSales() {

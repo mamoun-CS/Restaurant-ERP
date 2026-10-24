@@ -14,7 +14,7 @@ export async function initAndSyncProductCatalog(): Promise<LocalProduct[]> {
 
     if (res && res.ok) {
       const serverProducts = await res.json().catch(() => null);
-      if (Array.isArray(serverProducts) && serverProducts.length > 0) {
+      if (Array.isArray(serverProducts)) {
         const mappedProducts: LocalProduct[] = serverProducts.map((p) => {
           const enTranslation = p.translations?.find((t: { locale: string }) => t.locale === "en");
           const arTranslation = p.translations?.find((t: { locale: string }) => t.locale === "ar");
@@ -52,8 +52,10 @@ export async function initAndSyncProductCatalog(): Promise<LocalProduct[]> {
 
         // Save into IndexedDB
         await localDb.transaction("rw", [localDb.products, localDb.config], async () => {
+          // The server's empty list is authoritative too: it may represent
+          // a catalog whose products were all deactivated/deleted.
           await localDb.products.clear();
-          await localDb.products.bulkPut(mappedProducts);
+          if (mappedProducts.length > 0) await localDb.products.bulkPut(mappedProducts);
           await localDb.setConfig("lastProductSyncAt", new Date().toISOString());
         });
 
@@ -100,14 +102,19 @@ export async function syncAppMetadata(): Promise<void> {
     const catRes = await fetch("/api/categories").catch(() => null);
     if (catRes && catRes.ok) {
       const categories = await catRes.json().catch(() => null);
-      if (Array.isArray(categories) && categories.length > 0) {
+      if (Array.isArray(categories)) {
         const localCats: LocalCategory[] = categories.map((c) => ({
           id: c.id,
           nameEn: c.nameEn,
           nameAr: c.nameAr,
           sortOrder: c.sortOrder ?? 0,
         }));
-        await localDb.categories.bulkPut(localCats).catch(() => null);
+        // Remove stale/deleted categories instead of resurrecting them from
+        // the previous local snapshot.
+        await localDb.transaction("rw", localDb.categories, async () => {
+          await localDb.categories.clear();
+          if (localCats.length > 0) await localDb.categories.bulkPut(localCats);
+        }).catch(() => null);
       }
     }
   } catch (err) {

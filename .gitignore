@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/nova-print-agent/node_modules/
+/print-agent/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,9 +18,20 @@
 # next.js
 /.next/
 /out/
+/nova-print-agent/out/
+/nova-print-agent/dist/
+/print-agent/dist/
 
 # production
 /build
+/nova-print-agent/build/
+/nova-print-agent/release/
+/nova-print-agent/*.exe
+/nova-print-agent/*.msi
+/nova-print-agent/*.dmg
+/nova-print-agent/*.AppImage
+/nova-print-agent/*.zip
+/nova-print-agent/*.7z
 
 # misc
 .DS_Store

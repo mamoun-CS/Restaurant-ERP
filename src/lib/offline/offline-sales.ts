@@ -157,8 +157,13 @@ export async function saveSaleLocally(input: CreateSaleInput): Promise<OfflineSa
 
   // Atomic Dexie transaction saving sale + sync queue entry together
   await localDb.transaction("rw", [localDb.sales, localDb.syncQueue], async () => {
+    const existingQueue = await localDb.syncQueue.where("saleId").equals(sale.id).first();
     await localDb.sales.put(sale);
-    await localDb.syncQueue.put(queueEntry);
+    if (existingQueue?.id) {
+      await localDb.syncQueue.update(existingQueue.id, queueEntry);
+    } else {
+      await localDb.syncQueue.add(queueEntry);
+    }
   });
 
   return sale;
