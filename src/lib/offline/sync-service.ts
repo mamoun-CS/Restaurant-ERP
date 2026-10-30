@@ -230,6 +230,8 @@ class SyncService {
           break;
         }
       }
+      // Trigger local-to-cloud bidirectional sync in background
+      void fetch("/api/sync/cloud", { method: "POST" }).catch(() => {});
     } catch (err) {
       console.error("Synchronization cycle encountered error", err);
       this.lastError = err instanceof Error ? err.message : "Sync error";

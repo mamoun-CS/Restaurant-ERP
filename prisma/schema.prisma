@@ -525,6 +525,8 @@ model Invoice {
   payments            InvoicePayment[]
   kitchenOrder        KitchenOrder?
   printJobs           PrintJob[]
+  isSynced            Boolean           @default(false)
+  syncedAt            DateTime?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
