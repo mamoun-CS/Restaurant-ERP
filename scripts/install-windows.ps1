@@ -12,7 +12,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $workspaceDir = Resolve-Path (Join-Path $PSScriptRoot "..")
-$nodeExe = (Get-Command node).Source
+$nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+$nodeExe = if ($nodeCommand) { $nodeCommand.Source } else { $null }
 
 if (-not $nodeExe) {
     Write-Error "Node.js was not found in PATH. Please install Node.js 20 LTS first."
@@ -37,12 +38,9 @@ Write-Host " Node:      $nodeExe                                       " -Foregr
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # 1. Register Next.js ERP Task
-$erpAction = New-ScheduledTaskAction -Execute "$nodeExe" `
-    -Argument "server.js" `
-    -WorkingDirectory "$workspaceDir"
-
-$agentAction = New-ScheduledTaskAction -Execute "$nodeExe" `
-    -Argument "print-agent/dist/cli.js run" `
+$launcher = Join-Path $workspaceDir "scripts\auto-start-service.bat"
+$erpAction = New-ScheduledTaskAction -Execute "cmd.exe" `
+    -Argument "/c `"$launcher`"" `
     -WorkingDirectory "$workspaceDir"
 
 $trigger = New-ScheduledTaskTrigger -AtLogOn
@@ -64,9 +62,6 @@ Unregister-ScheduledTask -TaskName $agentTaskName -Confirm:$false -ErrorAction S
 # Register new tasks
 Register-ScheduledTask -TaskName $erpTaskName -Action $erpAction -Trigger $trigger -Principal $principal -Settings $settings | Out-Null
 Write-Host "✓ Registered ERP Task: $erpTaskName" -ForegroundColor Green
-
-Register-ScheduledTask -TaskName $agentTaskName -Action $agentAction -Trigger $trigger -Principal $principal -Settings $settings | Out-Null
-Write-Host "✓ Registered Print Agent Task: $agentTaskName" -ForegroundColor Green
 
 Write-Host "`nAuto-start setup complete! Both services will run automatically on Windows logon." -ForegroundColor Green
 Write-Host "To start immediately, run: .\scripts\start-all.bat" -ForegroundColor Cyan
