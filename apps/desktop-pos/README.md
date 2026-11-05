@@ -16,7 +16,7 @@ From the repository root, the equivalent development command is `npm run desktop
 
 Push or merge the code to `main`, then open **GitHub → Actions → Build Windows POS Installer → Run workflow**. The same workflow also starts on pushes to `main` and `desktop-v*` release tags. Download the `restaurant-pos-windows-setup` artifact from the completed run and extract `Restaurant-POS-Setup.exe`. Copy that single file to the USB drive. The target cashier PC does not need Node.js, npm, Electron, Visual Studio, Python, or a compiler.
 
-The workflow runs the cashier tests, packages the NSIS installer, installs it silently into a temporary Windows profile, launches it to confirm SQLite is created, then simulates reinstall and uninstall to verify that the user's database is preserved. Cloud enrollment and sales synchronization still require a reachable server during first pairing; no API keys or credentials are embedded in the installer.
+The workflow runs the cashier tests, packages the NSIS installer, installs it silently into a temporary Windows profile, launches it to confirm SQLite is created, then simulates reinstall and uninstall to verify that the user's database is preserved. The current installer is unsigned, so Windows may show a publisher warning. Cloud enrollment and sales synchronization still require a reachable server during first pairing; no API keys or credentials are embedded in the installer.
 
 ## Current scope
 
