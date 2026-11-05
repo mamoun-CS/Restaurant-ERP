@@ -2,8 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const legacyRoot = path.join(root, "src", "app", "api");
+const appDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = path.resolve(appDirectory, "../..");
+const legacyRoot = path.join(root, "apps", "api", "src", "app", "api");
 const moduleRoot = path.join(root, "apps", "api", "src", "modules", "route-handlers");
 const routes = [...walk(legacyRoot)].filter((file) => path.basename(file) === "route.ts");
 

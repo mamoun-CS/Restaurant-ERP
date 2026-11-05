@@ -5,13 +5,13 @@
 The target is two independent products backed by one cloud API and one PostgreSQL database. Independent API and Online ERP Next targets now build from the monorepo; the cashier has a separate Electron build. Container deployment and DB-backed integration gates remain unverified:
 
 ```text
-apps/cashier (current path: apps/desktop-pos)
+apps/desktop-pos (Windows Cashier; SQLite, offline checkout)
   Electron main / React renderer / SQLite / offline auth / local checkout / local printing
                   | HTTPS device API; cashier session API; sync contracts
-Online ERP (current source path: repository root)
+apps/online-erp (Online ERP UI, auth, Prisma schema/migrations and print agent)
   Next.js admin, finance, employee, reporting, printing management, and mobile emergency POS
                   | HTTPS, cookie or token auth according to client
-apps/api (separate Next.js runtime; transitional shared server helpers remain in root src/lib)
+apps/api (separate Next.js runtime; shared auth/domain modules are consumed from apps/online-erp/src)
   Authentication / authorization / product / order / device / printing modules
                   | Prisma
               Existing PostgreSQL database
@@ -21,7 +21,7 @@ packages/shared-validation
 packages/shared-business-logic
 ```
 
-The cashier remains at `apps/desktop-pos` during migration to preserve installer configuration and the stable SQLite location. API handlers have been extracted into `apps/api/src/modules/route-handlers`; 72 root API route files re-export the same handlers for compatibility. The API has its own Next app and standalone output. The Online ERP source remains at the repository root; `Dockerfile.online-erp` and `npm run online-erp:build` produce a separate standalone target that rewrites `/api/*` to `ONLINE_ERP_API_URL`. This keeps UI/API server processes separate without copying or reimplementing the existing ERP UI. Both cloud targets are built from the monorepo and still use root Prisma/schema and server helpers where needed. Container images and PostgreSQL-backed flows have not been verified yet. Do not create a second cloud database or remove existing compatibility routes during rollout.
+The cashier remains at `apps/desktop-pos` to preserve installer configuration and the stable SQLite location. The Online ERP and backend runtime are grouped under `apps/online-erp` and `apps/api`; shared contracts remain in root `packages/`. POS, order, permissions, and printing API handlers live in `apps/api/src/modules/route-handlers`. ERP requests `/api/*` are rewritten to the API. Login, logout, and session endpoints remain in ERP because its page middleware verifies the session cookie; the API login path remains available for non-browser clients. PostgreSQL schema and migrations are owned by ERP, and the API currently consumes shared server helpers from ERP source during the staged extraction. No production data or migration was changed by the folder reorganization. Re-run app builds and database-backed integration checks after dependencies are installed; until then the reorganized layout is not considered re-verified for deployment.
 
 ## Shared packages (Phase A)
 
@@ -56,8 +56,8 @@ Orders need stable UUID/idempotency identifiers and explicit sources: `WINDOWS_P
 ## Extraction and deployment sequence
 
 1. Define shared contracts and logic while retaining all current routes (done for offline sale sync contracts).
-2. Extract API handlers behind a separately runnable API app; keep compatibility routes in the existing Next app during cutover (separate builds and local HTTP routing verified; container and DB-backed parity remain to verify).
-3. Keep the root Next UI as source during this migration stage, build it as its own target, and route API traffic to the independent backend. Move source into `apps/online-erp` after shared auth/session/server imports are disentangled and verify container deployment.
+2. Extract API handlers behind a separately runnable API app; keep compatibility routes in the ERP through rewrite/auth session endpoints (the separate builds passed before reorganization; rerun after dependency restore).
+3. Group UI source under `apps/online-erp`, keep API under `apps/api`, and route ERP API traffic to the backend. API handlers still use shared server helper source from ERP; extract these helpers to a server package before deploying API without ERP code.
 4. Implement and test mobile emergency POS using cloud-side order creation.
 5. Complete dynamic station ticket routing and local/offline printer configuration sync.
 6. Add order-source reporting, end-to-end sync/printing tests, and separate deployment pipelines.

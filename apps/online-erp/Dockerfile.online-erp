@@ -3,32 +3,35 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /workspace
 
 FROM base AS deps
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+WORKDIR /workspace
+COPY apps/online-erp/package.json ./package.json
+COPY apps/online-erp/package-lock.json ./package-lock.json
+COPY apps/online-erp/prisma ./prisma/
 COPY packages ./packages/
-COPY prisma.config.ts ./
+COPY apps/online-erp/prisma.config.ts ./prisma.config.ts
 RUN npm ci
 
 FROM base AS builder
+WORKDIR /workspace
 COPY --from=deps /workspace/node_modules ./node_modules
 COPY . .
+WORKDIR /workspace/apps/online-erp
 ARG ONLINE_ERP_API_URL
 ENV ONLINE_ERP_API_URL=${ONLINE_ERP_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN test -n "$ONLINE_ERP_API_URL"
-RUN npx prisma generate --schema prisma/schema.prisma
-RUN npm run build
+RUN npx prisma generate
+RUN npx next build
 
 FROM base AS runner
-WORKDIR /workspace
+WORKDIR /workspace/apps/online-erp
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-COPY --from=builder /workspace/public ./public
-COPY --from=builder /workspace/.next/standalone ./
-COPY --from=builder /workspace/.next/static ./.next/static
-COPY --from=builder /workspace/prisma ./prisma
+COPY --from=builder /workspace/apps/online-erp/public ./public
+COPY --from=builder /workspace/apps/online-erp/.next/standalone ./
+COPY --from=builder /workspace/apps/online-erp/.next/static ./.next/static
 EXPOSE 3000
 CMD ["node", "server.js"]

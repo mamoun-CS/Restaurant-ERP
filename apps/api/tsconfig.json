@@ -23,8 +23,11 @@
     ],
     "paths": {
       "@/*": [
-        "../../src/*"
-      ]
+        "../online-erp/src/*"
+      ],
+      "@restaurant/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@restaurant/shared-validation": ["../../packages/shared-validation/src/index.ts"],
+      "@restaurant/shared-business-logic": ["../../packages/shared-business-logic/src/index.ts"]
     },
     "incremental": true
   },
@@ -32,8 +35,8 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "../../src/**/*.ts",
-    "../../src/**/*.tsx",
+    "../online-erp/src/**/*.ts",
+    "../online-erp/src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

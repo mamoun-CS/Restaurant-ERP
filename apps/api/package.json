@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3010",
-    "build": "next build",
-    "start": "next start --port 3010",
-    "start:standalone": "node ../../scripts/start-api-standalone.mjs"
+    "dev": "node ../../apps/online-erp/scripts/run-next.mjs dev --port 3010",
+    "build": "node ../../apps/online-erp/scripts/run-next.mjs build",
+    "start": "node ../../apps/online-erp/scripts/run-next.mjs start --port 3010",
+    "start:standalone": "node ../../apps/online-erp/scripts/start-api-standalone.mjs",
+    "postinstall": "node scripts/generate-prisma.mjs"
   }
 }

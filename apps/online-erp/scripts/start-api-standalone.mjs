@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const apiDirectory = path.join(root, "apps", "api");
+const workspace = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const apiDirectory = path.join(workspace, "apps", "api");
 const server = path.join(apiDirectory, ".next", "standalone", "apps", "api", "server.js");
 const child = spawn(process.execPath, [server], {
   cwd: apiDirectory,

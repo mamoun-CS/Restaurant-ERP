@@ -1,5 +1,4 @@
-services:
-  # ── PostgreSQL Database ──────────────────────────
+﻿services:
   db:
     image: postgres:16-alpine
     container_name: restaurant_erp_db
@@ -15,13 +14,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - erp_network
+    networks: [erp_network]
 
-  # ── Restaurant ERP Web App (Next.js) ─────────────
   api:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/api/Dockerfile
     container_name: restaurant_erp_api
     restart: unless-stopped
@@ -31,7 +28,8 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ChangeMeSecurePassword123!}@db:5432/${POSTGRES_DB:-restaurant_erp}?schema=public"
-      AUTH_SECRET: ${AUTH_SECRET}
+      API_DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ChangeMeSecurePassword123!}@db:5432/${POSTGRES_DB:-restaurant_erp}?schema=public"
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
       APP_URL: ${APP_URL:-https://${DOMAIN}}
       NEXT_PUBLIC_APP_URL: ${APP_URL:-https://${DOMAIN}}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://${DOMAIN}}
@@ -47,20 +45,18 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sheikh Al Kar}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@${DOMAIN}}
-    expose:
-      - "3010"
+    expose: ["3010"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3010/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 12
-    networks:
-      - erp_network
+    networks: [erp_network]
 
-  app:
+  online-erp:
     build:
-      context: .
-      dockerfile: Dockerfile.online-erp
+      context: ../..
+      dockerfile: apps/online-erp/Dockerfile.online-erp
       args:
         ONLINE_ERP_API_URL: http://api:3010
     container_name: restaurant_erp_app
@@ -72,20 +68,17 @@ services:
       NODE_ENV: production
       APP_URL: ${APP_URL:-https://${DOMAIN}}
       NEXT_PUBLIC_APP_URL: ${APP_URL:-https://${DOMAIN}}
-    networks:
-      - erp_network
+    networks: [erp_network]
 
-  # ── Caddy Reverse Proxy & Automatic SSL ──────────
   caddy:
     image: caddy:2-alpine
     container_name: restaurant_erp_caddy
     restart: unless-stopped
-    depends_on:
-      - app
+    depends_on: [online-erp]
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp" # HTTP/3 QUIC
+      - "443:443/udp"
     environment:
       DOMAIN: ${DOMAIN}
     volumes:
@@ -93,8 +86,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
-    networks:
-      - erp_network
+    networks: [erp_network]
 
 volumes:
   postgres_data:

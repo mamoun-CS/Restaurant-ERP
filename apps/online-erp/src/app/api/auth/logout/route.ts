@@ -1,3 +1,7 @@
-// Compatibility adapter: handler implementation is owned by apps/api.
+import { NextResponse } from "next/server";
 
-export { POST } from "../../../../../apps/api/src/modules/route-handlers/auth/logout/route";
+export async function POST(request: Request) {
+  const response = NextResponse.redirect(new URL("/login", request.url));
+  response.cookies.set("erp_session", "", { httpOnly: true, expires: new Date(0), path: "/" });
+  return response;
+}

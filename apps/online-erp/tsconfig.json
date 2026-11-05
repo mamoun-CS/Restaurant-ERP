@@ -24,8 +24,12 @@
     ],
     "paths": {
       "@/*": [
-        "./src/*"
-      ]
+        "./src/*",
+        "../../packages/*/src/*"
+      ],
+      "@restaurant/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@restaurant/shared-validation": ["../../packages/shared-validation/src/index.ts"],
+      "@restaurant/shared-business-logic": ["../../packages/shared-business-logic/src/index.ts"]
     }
   },
   "include": [

@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const appDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = path.resolve(appDirectory, "../..");
 const sourceRoot = path.join(root, "apps", "api", "src", "modules", "route-handlers");
 const targetRoot = path.join(root, "apps", "api", "src", "app", "api");
-const legacyTargetRoot = path.join(root, "src", "app", "api");
 const methods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 const configs = new Set(["dynamic", "dynamicParams", "revalidate", "fetchCache", "runtime", "preferredRegion", "maxDuration"]);
 let count = 0;
@@ -15,8 +15,6 @@ for (const source of walk(sourceRoot)) {
   if (!exportsFor(source).length) continue;
   const destination = path.join(targetRoot, path.relative(sourceRoot, source));
   writeAdapter(destination, source, "API route adapter: business handler is owned by apps/api.");
-  const legacyDestination = path.join(legacyTargetRoot, path.relative(sourceRoot, source));
-  writeAdapter(legacyDestination, source, "Compatibility adapter: handler implementation is owned by apps/api.");
   count++;
 }
 console.log(`Generated ${count} API route adapters.`);

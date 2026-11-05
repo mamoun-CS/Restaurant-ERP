@@ -1,7 +1,7 @@
-services:
+﻿services:
   api:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
@@ -23,29 +23,25 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sheikh Al Kar}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
-    expose:
-      - "3010"
-    networks:
-      - erp-services
+    expose: ["3010"]
+    networks: [erp_services]
 
   online-erp:
     build:
-      context: .
-      dockerfile: Dockerfile.online-erp
+      context: ../..
+      dockerfile: apps/online-erp/Dockerfile.online-erp
       args:
         ONLINE_ERP_API_URL: http://api:3010
     restart: unless-stopped
-    depends_on:
-      - api
+    depends_on: [api]
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_APP_URL: ${APP_URL:?Set the Online ERP public origin}
       APP_URL: ${APP_URL:?Set the Online ERP public origin}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:?Set the Online ERP public origin}
     ports:
       - "${ERP_PORT:-3000}:3000"
-    networks:
-      - erp-services
+    networks: [erp_services]
 
 networks:
-  erp-services:
+  erp_services:
     driver: bridge

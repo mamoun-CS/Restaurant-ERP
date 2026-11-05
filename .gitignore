@@ -1,63 +1,24 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+﻿# Local build and package output
 /node_modules
-/nova-print-agent/node_modules/
-/print-agent/node_modules/
-/apps/desktop-pos/node_modules/
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/apps/api/.next/
-/out/
-/nova-print-agent/out/
-/nova-print-agent/dist/
-/print-agent/dist/
-/apps/desktop-pos/dist/
-/apps/desktop-pos/dist-electron/
-
-# production
-/build
-/nova-print-agent/build/
-/nova-print-agent/release/
-/apps/desktop-pos/release/
-/nova-print-agent/*.exe
-/nova-print-agent/*.msi
-/nova-print-agent/*.dmg
-/nova-print-agent/*.AppImage
-/nova-print-agent/*.zip
-/nova-print-agent/*.7z
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
+**/node_modules
+**/.next
+/apps/online-erp/src/generated/prisma
+**/dist
+**/release
+/apps/online-erp/.env
+/apps/online-erp/.env.*
+!/apps/online-erp/.env.example
+/apps/api/.env
+/apps/api/.env.*
+!/apps/api/.env.example
 .env*
 !.env.example
-
-# generated database client
-/src/generated/
-
-# vercel
-.vercel
-
-# typescript
+*.pem
+*.log
 *.tsbuildinfo
-next-env.d.ts
+coverage
+out
+build
+.DS_Store
+Thumbs.db
+.vercel
