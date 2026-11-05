@@ -6,19 +6,19 @@
 - Do not create a second cloud database. Preserve the existing PostgreSQL instance and apply only reviewed, additive schema migrations.
 - Keep the cashier database under Electron `userData`, outside the installer directory. Never delete or recreate it during app startup or installer updates.
 - Keep the current Electron path (`apps/desktop-pos`) temporarily. Rename it to `apps/cashier` only with a reviewed packaging/workflow migration; local database contents remain in the same OS application-data location.
-- Do not claim the online ERP/backend boundary is complete until both have separate start/build/deployment commands and their integration tests pass.
+- The operational target has two apps: the offline Windows Cashier and the full-stack Online ERP. Serve ERP UI and API routes from the same origin and port `3000` so the cashier has one cloud URL.
 
 ## Phase A — contracts and boundary (implementation in progress; verification gates open)
 
 1. Add platform-neutral DTOs, schemas, and business rules in `packages/shared-*`; consume the same sale contract and discount/total arithmetic in Electron and cloud sale acceptance.
-2. Keep cloud route handlers available in the ERP app while extracting their domain logic behind API modules.
-3. `apps/api` owns the runtime and handler table; `apps/online-erp` owns the ERP UI, auth/domain helpers, Prisma schema, and migrations. Root compatibility wrappers have been moved with the ERP app. Separate builds worked before the folder organization and must be rerun now.
-4. Install dependencies and verify both app builds and starts from their folders. Build/start the containers and verify successful auth/session, pairing, bootstrap, sale sync, permissions, and compatibility routing against a disposable PostgreSQL database before production routing. These checks remain open.
+2. Keep canonical cloud route handlers inside the full-stack ERP and generate API route adapters from that shared source.
+3. `apps/online-erp` owns the UI, auth, management APIs, POS device APIs, Prisma schema, and migrations. `apps/api` remains a compatibility route surface and is not a required third runtime.
+4. Install dependencies and verify the ERP full-stack build/start and separate cashier build. Verify auth/session, pairing, bootstrap, sale sync, permissions, and compatibility routing against a disposable PostgreSQL database before production routing.
 
 ## Phase B/C — cashier and online ERP
 
 5. Complete cashier behavior (local sale history, customer records, register sessions, options, offline printer config) without changing the stable SQLite location. Add explicit numbered SQLite migrations and backup/restore verification before any upgrade.
-6. ERP source is now grouped under `apps/online-erp`, with the existing screens/auth retained. API handlers still consume server helpers from that app during staged extraction. Remove that coupling, then demonstrate deployment parity and rollback.
+6. ERP source is grouped under `apps/online-erp`, with the existing screens/auth retained. Canonical API handlers now live with the full-stack ERP; the generated API compatibility surface imports those same handlers.
 7. Build a dedicated responsive mobile emergency POS in the online ERP. It uses the cloud order API and PostgreSQL only, requires internet, enforces employee role/branch/discount permissions server-side, and records `MOBILE_POS` source and device/session identity.
 8. Keep Windows offline checkout independent of the API. On reconnection, use shared DTOs, validation, and idempotency to push orders; never overwrite completed local facts.
 

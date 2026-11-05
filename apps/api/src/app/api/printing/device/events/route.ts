@@ -1,4 +1,4 @@
-// API route adapter: business handler is owned by apps/api.
+// Backend API compatibility route.
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export { GET } from "../../../../../modules/route-handlers/printing/device/events/route";
+export { GET } from "@/lib/backend-api/route-handlers/printing/device/events/route";

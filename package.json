@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "api:dev": "npm run dev --prefix apps/api",
-    "api:build": "npm run build --prefix apps/api",
-    "api:start": "npm run start --prefix apps/api",
     "erp:dev": "npm run dev --prefix apps/online-erp",
     "erp:build": "npm run build --prefix apps/online-erp",
     "erp:start": "npm run start --prefix apps/online-erp",

@@ -1,2 +1,3 @@
-// API route adapter: business handler is owned by apps/api.
-export { GET, PUT } from "../../../../modules/route-handlers/printing/category-routes/route";
+// Backend API compatibility route.
+
+export { GET, PUT } from "@/lib/backend-api/route-handlers/printing/category-routes/route";

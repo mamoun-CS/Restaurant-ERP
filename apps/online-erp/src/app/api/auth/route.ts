@@ -17,7 +17,13 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return apiError("INVALID_INPUT", "Invalid credentials", 400);
   const email = parsed.data.email.toLowerCase();
-  const user = await db.user.findUnique({ where: { email } }).catch(() => null);
+  let user: Awaited<ReturnType<typeof db.user.findUnique>>;
+  try {
+    user = await db.user.findUnique({ where: { email } });
+  } catch (error) {
+    console.error("Login database lookup failed", error);
+    return apiError("INTERNAL_ERROR", "ERP database schema is out of date. Apply pending migrations.", 503);
+  }
   if (user?.lockedUntil && user.lockedUntil > new Date()) return apiError("UNAUTHORIZED", "Invalid email or password", 401);
   if (!user || !(await bcrypt.compare(parsed.data.password, user.passwordHash))) {
     if (user) {

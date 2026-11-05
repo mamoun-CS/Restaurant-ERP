@@ -1,18 +1,13 @@
-# Backend API
+# Backend API Compatibility Surface
 
-This folder contains the independent Next.js API runtime and its route handlers. POS pairing/bootstrap/sync, ERP auth, order management, discounts/permissions, and printing configuration/jobs are served here. API source currently imports the existing auth/Prisma helpers from `apps/online-erp/src` to preserve the current business behavior while extraction continues.
-
-From the repository root, install dependencies and set the existing database and session secrets in `apps/online-erp/.env`:
+For the normal two-application workflow, run the full-stack Online ERP with:
 
 ```powershell
-npm ci --prefix apps/online-erp
-npm run postinstall --prefix apps/api
-npm run dev --prefix apps/api       # http://localhost:3010
-npm run build --prefix apps/api
+npm run dev --prefix apps/online-erp
 ```
 
-Set the API's own `DATABASE_URL` and `AUTH_SECRET` in `apps/api/.env`; point `DATABASE_URL` at the existing PostgreSQL database configured for the ERP.
+The ERP UI and API share one Next.js process on port `3000`. The Windows Cashier uses this same ERP origin for pairing, catalog bootstrap, and sale synchronization under `/api/v1`.
 
-For the Online ERP, set `ONLINE_ERP_API_URL=http://localhost:3010` and run `npm run dev --prefix apps/online-erp` (port 3000). Login/session endpoints stay in the ERP origin so its current cookie-based page authentication continues to work; other `/api/*` calls are forwarded to this backend.
+Canonical API handlers are maintained in `apps/online-erp/src/lib/backend-api/route-handlers`. `npm run api:routes --prefix apps/online-erp` generates route adapters for the ERP and this compatibility app. This folder remains for compatibility and staged deployments; it is not a third application the cashier needs to connect to.
 
-The existing PostgreSQL schema and migrations live in `apps/online-erp/prisma`. This API does not create or replace a database. Do not apply migrations without the documented backup and rollout gates.
+PostgreSQL schema and migrations are owned by `apps/online-erp/prisma`. Configure the ERP's `.env` with the existing `DATABASE_URL` and `AUTH_SECRET`; do not point these apps at different databases or secrets. Production migration rollout requires a verified backup and review of the pending migrations.

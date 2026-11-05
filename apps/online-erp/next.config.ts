@@ -4,15 +4,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.resolve(__dirname, "../.."),
+  turbopack: { root: path.resolve(__dirname, "../..") },
   transpilePackages: ["@restaurant/shared-types", "@restaurant/shared-validation", "@restaurant/shared-business-logic"],
-  async rewrites() {
-    const apiOrigin = process.env.ONLINE_ERP_API_URL?.replace(/\/$/, "");
-    if (!apiOrigin) return [];
-    return {
-      beforeFiles: [{ source: "/api/:path*", destination: `${apiOrigin}/api/:path*` }],
-      fallback: [],
-    };
-  },
   allowedDevOrigins: [
     "tychistic-ira-stretchiest.ngrok-free.dev",
     "localhost:3000",

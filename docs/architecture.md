@@ -1,18 +1,17 @@
 # Cashier and Online ERP Architecture
 
-## Required product boundary
+## Two runtime applications
 
-The target is two independent products backed by one cloud API and one PostgreSQL database. Independent API and Online ERP Next targets now build from the monorepo; the cashier has a separate Electron build. Container deployment and DB-backed integration gates remain unverified:
+The local and hosted product uses two applications. The Windows Cashier is separately installed and works offline. The Online ERP is a full-stack Next.js application; its UI, authentication, management API, POS enrollment, bootstrap, and sales synchronization are served from one origin on port `3000`.
 
 ```text
-apps/desktop-pos (Windows Cashier; SQLite, offline checkout)
-  Electron main / React renderer / SQLite / offline auth / local checkout / local printing
-                  | HTTPS device API; cashier session API; sync contracts
-apps/online-erp (Online ERP UI, auth, Prisma schema/migrations and print agent)
-  Next.js admin, finance, employee, reporting, printing management, and mobile emergency POS
-                  | HTTPS, cookie or token auth according to client
-apps/api (separate Next.js runtime; shared auth/domain modules are consumed from apps/online-erp/src)
-  Authentication / authorization / product / order / device / printing modules
+apps/desktop-pos (Windows Cashier)
+  Electron / SQLite / offline cashier credentials / local checkout / local printing
+                  | HTTPS to the ERP origin on port 3000
+                  | /api/v1/pos/* and /api/v1/sync/push
+apps/online-erp (full-stack Online ERP)
+  Next.js UI and API routes / PostgreSQL Prisma schema and migrations / print agent
+  canonical API handlers: src/lib/backend-api/route-handlers
                   | Prisma
               Existing PostgreSQL database
 
@@ -21,7 +20,7 @@ packages/shared-validation
 packages/shared-business-logic
 ```
 
-The cashier remains at `apps/desktop-pos` to preserve installer configuration and the stable SQLite location. The Online ERP and backend runtime are grouped under `apps/online-erp` and `apps/api`; shared contracts remain in root `packages/`. POS, order, permissions, and printing API handlers live in `apps/api/src/modules/route-handlers`. ERP requests `/api/*` are rewritten to the API. Login, logout, and session endpoints remain in ERP because its page middleware verifies the session cookie; the API login path remains available for non-browser clients. PostgreSQL schema and migrations are owned by ERP, and the API currently consumes shared server helpers from ERP source during the staged extraction. No production data or migration was changed by the folder reorganization. Re-run app builds and database-backed integration checks after dependencies are installed; until then the reorganized layout is not considered re-verified for deployment.
+The Online ERP route adapters are generated from the canonical handlers by `npm run api:routes`. The compatibility route tree under `apps/api` imports the same handlers; it is not required for the two-application local run. Do not start a second Next.js process for the normal ERP and cashier workflow.
 
 ## Shared packages (Phase A)
 
@@ -29,37 +28,16 @@ The cashier remains at `apps/desktop-pos` to preserve installer configuration an
 - `@restaurant/shared-validation` defines the offline sale upload schema; both the cashier sync worker and cloud API validate the same payload, including arithmetic reconciliation.
 - `@restaurant/shared-business-logic` contains pure integer-minor-unit sale-total and discount-limit functions, used by local checkout and server acceptance.
 
-Shared packages must remain independent of Electron, Next.js, Prisma, and SQLite. Cloud-only rules such as current device revocation and authorization still run on the API. The cashier also enforces the last signed policy snapshot so checkout remains offline-capable.
+Shared packages remain independent of Electron, Next.js, Prisma, and SQLite. Cloud-only rules such as device revocation and authorization run in the ERP API handlers. The cashier enforces its last signed policy snapshot so checkout remains offline-capable.
 
 ## Windows cashier trust boundary
 
-Electron main owns the SQLite database, persistent device credentials, synchronization, and local printer access. The renderer uses a narrow typed preload bridge; it has no direct filesystem, SQL, or Node access. Local data lives under Electron `userData`, outside the installation directory, so installer upgrades do not replace it. Checkout persists the order, items, payments, inventory movements, audit event, receipt, and outbox record in a single SQLite transaction.
+Electron main owns the SQLite database, persistent device credentials, synchronization, and local printer access. The renderer uses a narrow typed preload bridge; it has no direct filesystem, SQL, or Node access. Local data lives under Electron `userData`, outside the installation directory, so installer upgrades do not replace it. Checkout persists the order, items, payments, inventory movements, audit event, receipt, and outbox record before printing or cloud synchronization.
 
-The Windows cashier never connects to PostgreSQL. It uses device-authenticated HTTPS endpoints, caches catalog and signed cashier policy data, and uploads immutable sales with UUID idempotency keys. If cloud access is unavailable, the cashier can use the last downloaded catalog and authorization snapshot until the configured offline expiry.
+## Database and verification state
 
-## Online ERP and emergency mobile POS
+PostgreSQL schema and migrations are owned by Online ERP. On 2026-11-05, four pending migrations were applied to the configured local development database at `localhost:5432`: print-device telemetry, printer connection type, branch-scoped category routing, and offline POS devices. The migrations added columns/tables and adjusted a unique index; they did not delete application rows. Production schema state has not been checked or changed.
 
-The existing Next.js ERP remains the authoritative online application while extraction proceeds. It currently has browser login, role checks, dashboard and finance screens, products/categories/employees/discounts, cash shifts, invoice/order APIs, reports, and printer administration. The browser cashier already uses the cloud invoice API and records orders in PostgreSQL without requiring the Windows app.
+The local ERP login endpoint `/api/auth/login` and cashier device/sync endpoints are available on port `3000`. Both seeded demo users were found active in the local database, and the stored hashes match `Demo123!`. The backend login flow succeeds for both roles after the local migrations. This does not provision the separate offline cashier PIN; an administrator must set and assign that PIN under POS Devices.
 
-The dedicated mobile emergency POS is not yet implemented as a separately named surface. It must authenticate an authorized employee, use the shared cloud order API, mark its transaction source/device, and make the internet requirement visible. It must not depend on local SQLite or the Windows app. Existing `/pos` functionality is a reusable starting point, but it needs a dedicated touch-first workflow and server-side cashier authorization before it satisfies this requirement.
-
-## Printing assessment
-
-Retain `print-agent/`: it is a separate Windows TypeScript process for printer and cash-drawer work. The ERP already has printer pairing, device APIs, printer configurations, category/product routes, a durable print-job model with idempotency and retry state, admin printer controls, and invoice print-job creation. The database already supports a dynamic number of printer configurations and category/product assignments.
-
-The printer routing foundation is therefore reusable and does not need a fixed three-printer limit. Remaining work includes ensuring category/product routes produce station-specific kitchen tickets, defining fallback behavior for unassigned products, synchronizing printer configuration to the Electron cashier for offline tickets, and verifying that reprints and errors remain auditable. Shawarma, Broast, Burger, and a future Barista station are configuration data, never hard-coded application branches.
-
-## Order sources and identity
-
-Orders need stable UUID/idempotency identifiers and explicit sources: `WINDOWS_POS`, `MOBILE_POS`, or `ONLINE_ERP`, plus cashier and optional device identifiers. Existing invoices already have `idempotencyKey` and `clientTransactionId`; the offline sync path uses those fields. The existing browser invoice flow and cloud schema need source metadata before all three origins can be reliably reported and audited. Any schema change must be additive and preceded by duplicate/data preflight; do not modify production data as part of source-code work.
-
-## Extraction and deployment sequence
-
-1. Define shared contracts and logic while retaining all current routes (done for offline sale sync contracts).
-2. Extract API handlers behind a separately runnable API app; keep compatibility routes in the ERP through rewrite/auth session endpoints (the separate builds passed before reorganization; rerun after dependency restore).
-3. Group UI source under `apps/online-erp`, keep API under `apps/api`, and route ERP API traffic to the backend. API handlers still use shared server helper source from ERP; extract these helpers to a server package before deploying API without ERP code.
-4. Implement and test mobile emergency POS using cloud-side order creation.
-5. Complete dynamic station ticket routing and local/offline printer configuration sync.
-6. Add order-source reporting, end-to-end sync/printing tests, and separate deployment pipelines.
-
-See `docs/REBUILD-STATUS.md` for current phase and `docs/MIGRATION-PLAN.md` for data safety gates.
+The Online ERP dev server and selected API flows were verified locally. A production build compiled but its TypeScript phase is blocked by an incomplete local Next.js installation missing `next/types.d.ts`; build/deploy readiness remains unverified. Device pairing with a live code, actual sale synchronization, and production deployment have not been exercised in this checkout.

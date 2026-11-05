@@ -1,3 +1,3 @@
-// API route adapter: business handler is owned by apps/api.
+// Backend API compatibility route.
 
-export { POST } from "../../../../../../modules/route-handlers/printing/invoices/[id]/print/route";
+export { POST } from "@/lib/backend-api/route-handlers/printing/invoices/[id]/print/route";

@@ -1,3 +1,3 @@
-// API route adapter: business handler is owned by apps/api.
+// Backend API compatibility route.
 
-export { DELETE } from "../../../../../modules/route-handlers/pos/devices/[id]/route";
+export { DELETE } from "@/lib/backend-api/route-handlers/pos/devices/[id]/route";

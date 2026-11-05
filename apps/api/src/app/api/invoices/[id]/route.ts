@@ -1,3 +1,3 @@
-// API route adapter: business handler is owned by apps/api.
+// Backend API compatibility route.
 
-export { GET, PUT, DELETE } from "../../../../modules/route-handlers/invoices/[id]/route";
+export { GET, PUT, DELETE } from "@/lib/backend-api/route-handlers/invoices/[id]/route";

@@ -4,8 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const appDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.resolve(appDirectory, "../..");
-const sourceRoot = path.join(root, "apps", "api", "src", "modules", "route-handlers");
-const targetRoot = path.join(root, "apps", "api", "src", "app", "api");
+const sourceRoot = path.join(appDirectory, "src", "lib", "backend-api", "route-handlers");
+const targetRoots = [
+  path.join(root, "apps", "api", "src", "app", "api"),
+  path.join(appDirectory, "src", "app", "api"),
+];
+const erpOwnedRoutes = new Set(["auth/login/route.ts", "auth/logout/route.ts", "auth/session/route.ts"]);
 const methods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 const configs = new Set(["dynamic", "dynamicParams", "revalidate", "fetchCache", "runtime", "preferredRegion", "maxDuration"]);
 let count = 0;
@@ -13,16 +17,19 @@ let count = 0;
 for (const source of walk(sourceRoot)) {
   if (path.basename(source) !== "route.ts") continue;
   if (!exportsFor(source).length) continue;
-  const destination = path.join(targetRoot, path.relative(sourceRoot, source));
-  writeAdapter(destination, source, "API route adapter: business handler is owned by apps/api.");
-  count++;
+  const relative = path.relative(sourceRoot, source);
+  const handlerImport = `@/lib/backend-api/route-handlers/${relative.replaceAll(path.sep, "/").replace(/\.ts$/, "")}`;
+  for (const [index, targetRoot] of targetRoots.entries()) {
+    const destination = path.join(targetRoot, relative);
+    if (index === 1 && erpOwnedRoutes.has(relative.replaceAll(path.sep, "/"))) continue;
+    writeAdapter(destination, source, handlerImport, index === 0 ? "Backend API compatibility route." : "Online ERP full-stack API route.");
+    count++;
+  }
 }
-console.log(`Generated ${count} API route adapters.`);
+console.log(`Generated ${count} API route adapters for the ERP and backend compatibility app.`);
 
-function writeAdapter(destination, source, comment) {
+function writeAdapter(destination, source, specifier, comment) {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
-  const relativeImport = path.relative(path.dirname(destination), source).replaceAll(path.sep, "/").replace(/\.ts$/, "");
-  const specifier = relativeImport.startsWith(".") ? relativeImport : `./${relativeImport}`;
   fs.writeFileSync(destination, `// ${comment}\n${configLinesFor(source).join("\n")}\nexport { ${exportsFor(source).join(", ")} } from ${JSON.stringify(specifier)};\n`);
 }
 

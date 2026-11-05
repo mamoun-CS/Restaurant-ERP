@@ -1,3 +1,3 @@
-// API route adapter: business handler is owned by apps/api.
+// Backend API compatibility route.
 
-export { GET, PATCH } from "../../../../modules/route-handlers/cash/settings/route";
+export { GET, PATCH } from "@/lib/backend-api/route-handlers/cash/settings/route";
