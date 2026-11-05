@@ -8,6 +8,12 @@ import { PosDatabase } from "./database";
 import type { AuthorizedCheckoutInput, BootstrapSnapshot, CheckoutInput } from "./shared";
 import { offlineSaleSchema } from "@restaurant/shared-validation";
 
+// The Windows installer smoke test uses a temporary user-data directory. Normal
+// installations do not set this environment variable and keep Electron's default.
+if (app.isPackaged && process.env.RESTAURANT_POS_TEST_USER_DATA) {
+  app.setPath("userData", process.env.RESTAURANT_POS_TEST_USER_DATA);
+}
+
 let database: PosDatabase;
 let windowRef: BrowserWindow | undefined;
 let localDeviceId = "";

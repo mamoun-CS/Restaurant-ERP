@@ -6,25 +6,23 @@
   "private": true,
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on tcp:5173 dist-electron/main.js && cross-env ELECTRON_RUN_AS_NODE= VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"tsc -p tsconfig.electron.json --watch\" \"wait-on tcp:5173 dist-electron/main.js && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 node scripts/run-electron.cjs .\"",
     "build": "tsc -p tsconfig.electron.json && tsc -b && vite build",
     "agent:build": "tsc -p ../online-erp/print-agent/tsconfig.json",
-    "native:rebuild": "electron-rebuild --force --which-module better-sqlite3 --version 45.2.3",
-    "native:verify": "cross-env ELECTRON_RUN_AS_NODE= electron scripts/verify-sqlite-electron.cjs",
-    "package:windows": "npm run agent:build && npm run build && npm run native:rebuild && npm run native:verify && electron-builder --win nsis",
+    "native:verify": "node scripts/run-electron.cjs scripts/verify-sqlite-electron.cjs",
+    "package:windows": "npm run agent:build && npm run build && npm run native:verify && electron-builder --win nsis",
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@restaurant/shared-business-logic": "file:../../packages/shared-business-logic",
     "@restaurant/shared-types": "file:../../packages/shared-types",
     "@restaurant/shared-validation": "file:../../packages/shared-validation",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^13.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.2.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",

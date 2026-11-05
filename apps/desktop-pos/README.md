@@ -10,7 +10,7 @@ npm run build
 npm run package:windows
 ```
 
-From the repository root, the equivalent development command is `npm run desktop:dev`. `npm run package:windows` builds a per-user NSIS installer with Start Menu and desktop shortcuts. It rebuilds `better-sqlite3` against the pinned Electron ABI, verifies SQLite under Electron, and packages native `.node` modules outside ASAR. Installer upgrades and uninstalls keep the SQLite file in the user's data folder. Local native packaging requires Visual Studio 2022 C++ build tools; GitHub Actions supplies this toolchain on its Windows runner.
+From the repository root, the equivalent development command is `npm run desktop:dev`. `npm run package:windows` builds a per-user NSIS installer with Start Menu and desktop shortcuts. It uses `better-sqlite3`'s Node-API prebuilt binary, verifies SQLite from a real Electron process, and packages native `.node` modules outside ASAR. An Electron-specific C++ rebuild is not needed. Installer upgrades and uninstalls keep the SQLite file in the user's data folder.
 
 ## Build and download the USB installer
 

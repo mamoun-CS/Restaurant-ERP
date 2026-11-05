@@ -8,6 +8,7 @@ $installDir = Join-Path $work "installed"
 $appData = Join-Path $work "appdata"
 New-Item -ItemType Directory -Force -Path $installDir, $appData | Out-Null
 $originalAppData = $env:APPDATA
+$originalTestUserData = $env:RESTAURANT_POS_TEST_USER_DATA
 $originalRunAsNode = $env:ELECTRON_RUN_AS_NODE
 $appProcess = $null
 
@@ -36,6 +37,7 @@ function Stop-InstalledCashier {
 
 try {
   $env:APPDATA = $appData
+  $env:RESTAURANT_POS_TEST_USER_DATA = $appData
   Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
   Start-Process -FilePath $installer -ArgumentList @("/S", "/D=$installDir") -Wait
   Stop-InstalledCashier
@@ -65,5 +67,6 @@ try {
 } finally {
   if ($appProcess -and -not $appProcess.HasExited) { Stop-Process -Id $appProcess.Id -Force -ErrorAction SilentlyContinue }
   if ($null -eq $originalAppData) { Remove-Item Env:APPDATA -ErrorAction SilentlyContinue } else { $env:APPDATA = $originalAppData }
+  if ($null -eq $originalTestUserData) { Remove-Item Env:RESTAURANT_POS_TEST_USER_DATA -ErrorAction SilentlyContinue } else { $env:RESTAURANT_POS_TEST_USER_DATA = $originalTestUserData }
   if ($null -eq $originalRunAsNode) { Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue } else { $env:ELECTRON_RUN_AS_NODE = $originalRunAsNode }
 }

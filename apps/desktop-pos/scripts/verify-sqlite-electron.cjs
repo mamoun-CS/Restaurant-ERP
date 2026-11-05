@@ -21,12 +21,12 @@ async function main() {
         if (sentinel?.value !== "preserved") throw new Error("Installer update or uninstall did not preserve the user's app data.");
       }
     } else {
-      db.exec("CREATE TABLE sqlite_smoke (value TEXT NOT NULL)");
-      db.prepare("INSERT INTO sqlite_smoke(value) VALUES (?)").run("electron-abi-ok");
-      const result = db.prepare("SELECT value FROM sqlite_smoke").get();
-      if (result.value !== "electron-abi-ok") throw new Error("SQLite read/write smoke check failed.");
+      db.exec("CREATE TABLE pos_installer_smoke (value TEXT NOT NULL)");
+      db.prepare("INSERT INTO pos_installer_smoke(value) VALUES (?)").run("electron-napi-ok");
+      const result = db.prepare("SELECT value FROM pos_installer_smoke").get();
+      if (result.value !== "electron-napi-ok") throw new Error("SQLite read/write smoke check failed.");
     }
-    console.log(`better-sqlite3 loaded successfully with SQLite ${version}${databasePath ? ` at ${databasePath}` : ""}.`);
+    console.log(`better-sqlite3 N-API loaded successfully in Electron with SQLite ${version}${databasePath ? ` at ${databasePath}` : ""}.`);
   } catch (error) {
     console.error(error);
     exitCode = 1;
