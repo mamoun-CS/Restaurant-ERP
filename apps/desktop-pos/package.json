@@ -12,6 +12,9 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@restaurant/shared-business-logic": "file:../../packages/shared-business-logic",
+    "@restaurant/shared-types": "file:../../packages/shared-types",
+    "@restaurant/shared-validation": "file:../../packages/shared-validation",
     "better-sqlite3": "^12.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

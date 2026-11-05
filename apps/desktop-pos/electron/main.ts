@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { PosDatabase } from "./database";
 import type { AuthorizedCheckoutInput, BootstrapSnapshot, CheckoutInput } from "./shared";
+import { offlineSaleSchema } from "@restaurant/shared-validation";
 
 let database: PosDatabase;
 let windowRef: BrowserWindow | undefined;
@@ -95,11 +96,19 @@ async function runSyncCycle() {
     }
     const batch = database.claimSyncBatch(20);
     if (batch.length) {
+      const validOrders: unknown[] = [];
+      const validRows = new Set<string>();
+      for (const row of batch) {
+        const parsed = offlineSaleSchema.safeParse(row.payload);
+        if (parsed.success) { validOrders.push(parsed.data); validRows.add(row.id); }
+        else database.markSyncFailure(row.id, "Saved sale does not match the shared sync contract.", true, row.attempts);
+      }
+      if (!validOrders.length) return;
       let response: Response;
       try {
         response = await fetch(new URL("/api/v1/sync/push", config.baseUrl), {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify({ orders: batch.map((row) => row.payload) }), signal: AbortSignal.timeout(25_000),
+          body: JSON.stringify({ orders: validOrders }), signal: AbortSignal.timeout(25_000),
         });
       } catch (error) {
         for (const row of batch) database.markSyncFailure(row.id, error instanceof Error ? error.message : "Network request failed.", false, row.attempts);
@@ -115,6 +124,7 @@ async function runSyncCycle() {
       const data = await response.json() as { acknowledgements?: { clientTransactionId:string;invoiceId?:string;officialNumber?:string;error?:string;permanent?:boolean }[] };
       const acknowledgements = new Map((data.acknowledgements ?? []).map((ack) => [ack.clientTransactionId, ack]));
       for (const row of batch) {
+        if (!validRows.has(row.id)) continue;
         const ack = acknowledgements.get(row.entityId);
         if (ack?.invoiceId && ack.officialNumber) database.markSyncSucceeded(row.id, ack.invoiceId, ack.officialNumber);
         else database.markSyncFailure(row.id, ack?.error ?? "The server did not acknowledge this sale.", ack?.permanent ?? false, row.attempts);

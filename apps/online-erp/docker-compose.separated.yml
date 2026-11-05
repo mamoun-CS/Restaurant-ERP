@@ -1,0 +1,51 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${API_DATABASE_URL:?Set API_DATABASE_URL routable from the API container}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET}
+      APP_URL: ${APP_URL:?Set the Online ERP public origin}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:?Set the Online ERP public origin}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?Set allowed browser origins}
+      NEXT_PUBLIC_PRINTING_ENABLED: ${NEXT_PUBLIC_PRINTING_ENABLED:-true}
+      PRINT_PAIRING_CODE_EXPIRATION_MINUTES: ${PRINT_PAIRING_CODE_EXPIRATION_MINUTES:-10}
+      PRINT_DEVICE_OFFLINE_SECONDS: ${PRINT_DEVICE_OFFLINE_SECONDS:-90}
+      PRINT_JOB_MAX_ATTEMPTS: ${PRINT_JOB_MAX_ATTEMPTS:-5}
+      PRINT_JOB_TIMEOUT_SECONDS: ${PRINT_JOB_TIMEOUT_SECONDS:-30}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Sheikh Al Kar}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+    expose:
+      - "3010"
+    networks:
+      - erp-services
+
+  online-erp:
+    build:
+      context: .
+      dockerfile: Dockerfile.online-erp
+      args:
+        ONLINE_ERP_API_URL: http://api:3010
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_URL: ${APP_URL:?Set the Online ERP public origin}
+      APP_URL: ${APP_URL:?Set the Online ERP public origin}
+    ports:
+      - "${ERP_PORT:-3000}:3000"
+    networks:
+      - erp-services
+
+networks:
+  erp-services:
+    driver: bridge

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
+import { discountLimitMinor, saleTotals } from "@restaurant/shared-business-logic";
 import type { AuthorizedCheckoutInput, BootstrapSnapshot, ProductSummary } from "./shared";
 
 const scrypt = promisify(scryptCallback);
@@ -173,14 +174,14 @@ export class PosDatabase {
       if (taxMinor !== 0) throw new Error("Tax configuration is not provisioned on this device.");
       const cashier = db.prepare("SELECT policy_version,policy_token,can_discount,max_discount_percent,max_discount_minor FROM cashiers WHERE id=? AND active=1").get(cashierId) as {policy_version:number;policy_token:string;can_discount:number;max_discount_percent:number;max_discount_minor:number}|undefined;
       if (!cashier || input.cashierPolicyToken !== cashier.policy_token) throw new Error("Cashier permission snapshot is unavailable or out of date. Sync this device.");
-      const cashierDiscountLimit = cashier.can_discount ? Math.min(Math.floor(subtotalMinor * cashier.max_discount_percent / 100), cashier.max_discount_minor) : 0;
+      const cashierDiscountLimit = discountLimitMinor(subtotalMinor, Boolean(cashier.can_discount), cashier.max_discount_percent, cashier.max_discount_minor);
       if (discountMinor > cashierDiscountLimit && (!input.supervisorId || !input.supervisorPolicyToken)) throw new Error("Supervisor approval is required for this discount.");
       if (discountMinor > 0 && (!input.discountReason?.trim() || input.discountReason.trim().length > 250)) throw new Error("A discount reason is required.");
       if (input.supervisorId) {
         const supervisor = db.prepare("SELECT supervisor,active,offline_expires_at,policy_token FROM cashiers WHERE id=?").get(input.supervisorId) as {supervisor:number;active:number;offline_expires_at:string;policy_token:string}|undefined;
         if (!supervisor?.supervisor || !supervisor.active || Date.parse(supervisor.offline_expires_at) <= Date.now() || supervisor.policy_token !== input.supervisorPolicyToken) throw new Error("Supervisor approval is invalid or expired.");
       }
-      const totalMinor = subtotalMinor - discountMinor + taxMinor;
+      const totalMinor = saleTotals(subtotalMinor, discountMinor, taxMinor).totalMinor;
       const paidMinor = input.payments.reduce((sum, p) => sum + p.amountMinor, 0);
       if (!input.payments.length || !input.payments.every((p) => Number.isSafeInteger(p.amountMinor) && p.amountMinor > 0) || paidMinor !== totalMinor) throw new Error("Payment total must equal the sale total.");
       if (input.payments.some((payment) => payment.method !== "CASH")) throw new Error("Only cash payments are enabled until payment terminals are configured.");

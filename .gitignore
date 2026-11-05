@@ -18,6 +18,7 @@
 
 # next.js
 /.next/
+/apps/api/.next/
 /out/
 /nova-print-agent/out/
 /nova-print-agent/dist/
