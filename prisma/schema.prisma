@@ -249,6 +249,8 @@ model Branch {
   printerConfigs     PrinterConfiguration[]
   printJobs          PrintJob[]
   printPairingCodes  PrintPairingCode[]
+  posDevices         PosDevice[]
+  posPairingCodes    PosDevicePairingCode[]
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 }
@@ -266,6 +268,14 @@ model User {
   failedLoginCount        Int                  @default(0)
   lockedUntil             DateTime?
   forcePasswordChange     Boolean              @default(false)
+  offlinePinHash          String?
+  offlinePinSalt          String?
+  offlinePinExpiresAt      DateTime?
+  offlineCredentialVersion Int                 @default(1)
+  canDiscount             Boolean              @default(false)
+  maxDiscountPercent      Decimal              @default(0) @db.Decimal(5, 2)
+  maxDiscountAmount       Decimal              @default(0) @db.Decimal(12, 2)
+  supervisor              Boolean              @default(false)
   sessionVersion          Int                  @default(1)
   branchId                String?
   branch                  Branch?              @relation(fields: [branchId], references: [id])
@@ -281,6 +291,8 @@ model User {
   createdPurchaseReturns  PurchaseReturn[]
   auditLogs               AuditLog[]
   passwordResetTokens     PasswordResetToken[]
+  posDeviceAssignments    PosDeviceCashier[]
+  createdPosPairingCodes   PosDevicePairingCode[] @relation("PosPairingCreator")
   baseSalary              Decimal              @default(0) @db.Decimal(12, 2)
   payrollRecords          PayrollRecord[]      @relation("EmployeePayroll")
   createdAt               DateTime             @default(now())
@@ -626,11 +638,68 @@ model CashRegister {
   branch    Branch      @relation(fields: [branchId], references: [id])
   active    Boolean     @default(true)
   shifts    CashShift[]
+  posDevices PosDevice[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
   @@unique([branchId, number])
   @@index([branchId, active])
+}
+
+model PosDevice {
+  id                 String               @id @default(cuid())
+  name               String
+  deviceCode         String               @unique
+  refreshTokenHash   String
+  branchId           String
+  branch             Branch               @relation(fields: [branchId], references: [id])
+  registerId         String?
+  register           CashRegister?        @relation(fields: [registerId], references: [id], onDelete: SetNull)
+  active             Boolean              @default(true)
+  revokedAt          DateTime?
+  appVersion         String?
+  lastHeartbeatAt    DateTime?
+  lastSyncAt         DateTime?
+  lastSyncError      String?
+  assignments        PosDeviceCashier[]
+  pairingCodes       PosDevicePairingCode[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([branchId, active])
+  @@index([lastHeartbeatAt])
+}
+
+model PosDeviceCashier {
+  id         String    @id @default(cuid())
+  deviceId   String
+  device     PosDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+
+  @@unique([deviceId, userId])
+  @@index([userId, active])
+}
+
+model PosDevicePairingCode {
+  id          String       @id @default(cuid())
+  codeHash    String       @unique
+  branchId    String
+  branch      Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  registerId  String?
+  deviceId    String?
+  device      PosDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy   User         @relation("PosPairingCreator", fields: [createdById], references: [id])
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  attempts    Int          @default(0)
+  createdAt   DateTime     @default(now())
+
+  @@index([branchId, expiresAt])
+  @@index([consumedAt])
 }
 
 model CashShift {

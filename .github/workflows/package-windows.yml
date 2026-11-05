@@ -1,0 +1,29 @@
+name: Package Windows POS
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+
+jobs:
+  package:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/desktop-pos
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop-pos/package-lock.json
+      - run: npm ci
+      - run: npm run test
+      - run: npm run package:windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-pos-installer
+          path: apps/desktop-pos/release/*.exe
+          if-no-files-found: error

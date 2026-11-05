@@ -15,6 +15,7 @@ export const en = {
   categories: "Categories",
   discounts: "Offers & discounts",
   employees: "Employees",
+  posDevices: "POS Devices",
   invoices: "Invoices",
   settings: "Settings",
   pos: "Open POS",

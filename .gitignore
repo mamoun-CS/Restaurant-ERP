@@ -4,6 +4,7 @@
 /node_modules
 /nova-print-agent/node_modules/
 /print-agent/node_modules/
+/apps/desktop-pos/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -21,11 +22,14 @@
 /nova-print-agent/out/
 /nova-print-agent/dist/
 /print-agent/dist/
+/apps/desktop-pos/dist/
+/apps/desktop-pos/dist-electron/
 
 # production
 /build
 /nova-print-agent/build/
 /nova-print-agent/release/
+/apps/desktop-pos/release/
 /nova-print-agent/*.exe
 /nova-print-agent/*.msi
 /nova-print-agent/*.dmg

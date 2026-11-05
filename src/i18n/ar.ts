@@ -16,6 +16,7 @@ export const ar: Record<TranslationKey, string> = {
   categories: "التصنيفات",
   discounts: "العروض والخصومات",
   employees: "الموظفون",
+  posDevices: "أجهزة نقاط البيع",
   invoices: "الفواتير",
   settings: "الإعدادات",
   pos: "فتح الكاشير",

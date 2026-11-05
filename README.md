@@ -1,4 +1,21 @@
-# Sheikh Al Kar Restaurant ERP
+# Sheikh Al Kar Restaurant ERP and Offline POS
+
+The existing Next.js application remains the cloud admin/ERP and API, backed by PostgreSQL. A separate Electron Windows POS app is under `apps/desktop-pos`. Current implementation state and remaining work are tracked in [docs/REBUILD-STATUS.md](docs/REBUILD-STATUS.md); the architecture document is [docs/architecture.md](docs/architecture.md), alongside [database design](docs/DATABASE-DESIGN.md), [sync strategy](docs/SYNC-STRATEGY.md), [security](docs/SECURITY.md), and [migration plan](docs/MIGRATION-PLAN.md).
+
+For the current browser ERP, continue using the root scripts below. For the Electron POS, run its independent commands from `apps/desktop-pos`:
+
+```powershell
+cd apps/desktop-pos
+npm install
+npm run dev
+npm run build
+npm run test
+npm run package:windows
+```
+
+The Electron app has an independent SQLite database, offline cashier login, atomic local cash checkout, pairing, catalog/cashier provisioning, and retrying cloud sale sync. The backend and admin dashboard still deploy together in the existing Next.js app; see the rebuild status for unfinished work and rollout constraints.
+
+## Existing cloud application
 
 A bilingual restaurant ERP and point-of-sale system for **Sheikh Al Kar / شيخ الكار**. The project supports manager administration, cashier sales, product and employee management, invoices, finance reporting, multi-currency payments, and cash register shift control.
 
@@ -37,7 +54,7 @@ The target users are restaurant managers, cashiers, and operations staff who nee
 | Charts | `recharts` |
 | PDF/export | `pdf-lib`, `xlsx` |
 | State | React local state and browser fetch calls |
-| Testing | Lint/build checks currently; no dedicated test runner is configured |
+| Testing | Root scripts cover ERP sync/printing behavior; desktop app has its own SQLite/auth tests |
 
 ## Architecture
 

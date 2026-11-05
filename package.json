@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "desktop:dev": "npm --prefix apps/desktop-pos run dev",
+    "desktop:build": "npm --prefix apps/desktop-pos run build",
+    "package:windows": "npm --prefix apps/desktop-pos run package:windows",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

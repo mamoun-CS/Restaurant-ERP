@@ -26,6 +26,7 @@ import {
   Palette,
   Bell,
   ShieldCheck,
+  MonitorSmartphone,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
@@ -41,6 +42,7 @@ const nav: { href: string; label: TranslationKey; icon: typeof Gauge }[] = [
   { href: "/admin/categories", label: "categories", icon: Tags },
   { href: "/admin/discounts", label: "discounts", icon: CirclePercent },
   { href: "/admin/employees", label: "employees", icon: Users },
+  { href: "/admin/pos-devices", label: "posDevices", icon: MonitorSmartphone },
   { href: "/admin/invoices", label: "invoices", icon: FileText },
   { href: "/admin/printing/jobs", label: "print", icon: Printer },
   { href: "/admin/settings", label: "settings", icon: Settings },

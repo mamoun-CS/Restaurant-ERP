@@ -142,7 +142,7 @@ export async function pullCatalogFromCloud(): Promise<number> {
     }
 
     const cloudProducts = await cloudDb.product.findMany({
-      include: { translations: true },
+      include: { translations: true, sizes: true, addons: true },
     });
 
     for (const p of cloudProducts) {
@@ -154,11 +154,21 @@ export async function pullCatalogFromCloud(): Promise<number> {
           price: p.price,
           currentCost: p.currentCost,
           active: p.active,
-          emoji: p.emoji,
-          color: p.color,
-          sizes: p.sizes as any,
-          addons: p.addons as any,
+          barcode: p.barcode,
+          imageUrl: p.imageUrl,
           requiresPreparation: p.requiresPreparation,
+          translations: {
+            deleteMany: {},
+            create: p.translations.map(({ locale, name, description }) => ({ locale, name, description })),
+          },
+          sizes: {
+            deleteMany: {},
+            create: p.sizes.map(({ nameEn, nameAr, priceDelta }) => ({ nameEn, nameAr, priceDelta })),
+          },
+          addons: {
+            deleteMany: {},
+            create: p.addons.map(({ nameEn, nameAr, price }) => ({ nameEn, nameAr, price })),
+          },
         },
         create: {
           id: p.id,
@@ -167,11 +177,18 @@ export async function pullCatalogFromCloud(): Promise<number> {
           price: p.price,
           currentCost: p.currentCost,
           active: p.active,
-          emoji: p.emoji,
-          color: p.color,
-          sizes: p.sizes as any,
-          addons: p.addons as any,
+          barcode: p.barcode,
+          imageUrl: p.imageUrl,
           requiresPreparation: p.requiresPreparation,
+          translations: {
+            create: p.translations.map(({ locale, name, description }) => ({ locale, name, description })),
+          },
+          sizes: {
+            create: p.sizes.map(({ nameEn, nameAr, priceDelta }) => ({ nameEn, nameAr, priceDelta })),
+          },
+          addons: {
+            create: p.addons.map(({ nameEn, nameAr, price }) => ({ nameEn, nameAr, price })),
+          },
         },
       });
     }
