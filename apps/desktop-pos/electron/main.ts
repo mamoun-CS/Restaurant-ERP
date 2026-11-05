@@ -49,7 +49,7 @@ function validateCheckout(value: unknown): CheckoutInput {
   if (!Array.isArray(input.items) || input.items.length > 200 || !Array.isArray(input.payments) || input.payments.length > 10) throw new Error("Invalid checkout lines or payments.");
   if (!/^[A-Z]{3}$/.test(input.currencyCode)) throw new Error("Invalid currency.");
   if (!Number.isSafeInteger(input.discountMinor ?? 0) || (input.discountMinor ?? 0) < 0) throw new Error("Invalid discount amount.");
-  if ((input.discountMinor ?? 0) > 0 && (!input.discountReason?.trim() || input.discountReason.trim().length > 250)) throw new Error("Enter a reason for this discount.");
+  if ((input.discountMinor ?? 0) > 0 && !input.couponCode && (!input.discountReason?.trim() || input.discountReason.trim().length > 250)) throw new Error("Enter a reason for this discount.");
   if ((input.taxMinor ?? 0) !== 0) throw new Error("Tax configuration is not provisioned on this device.");
   if (input.items.some((item) => typeof item.productId !== "string" || !Number.isSafeInteger(item.quantity) || item.quantity < 1)) throw new Error("Invalid product line.");
   if (input.items.some((item) => item.unitPriceMinor !== undefined)) throw new Error("Prices are loaded from the local catalog.");
@@ -315,20 +315,14 @@ app.whenReady().then(() => {
   ipcMain.handle("app:local-status", (event) => { assertTrustedSender(event); let deviceEnrolled = false; try { deviceEnrolled = Boolean(getCloudConfig()); } catch { deviceEnrolled = false; } const cloudCatalogHash=database.getMetadata("cloud_catalog_hash"); const localCatalogHash=database.getCatalogHash(); const matchValue=database.getMetadata("catalog_matches_cloud"); return ({ databaseReady: true, catalogCount: database.listProducts().length,
     cashierName: activeCashier?.expiresAt && activeCashier.expiresAt > Date.now() ? activeCashier.name : null,
     pendingCount: database.getPendingCount(), cashierCount: database.getCashierCount(), deviceEnrolled, selectedPrinterName:database.getMetadata("receipt_printer_name")||null,
-    lastSyncAt: database.getMetadata("last_cloud_sync"), lastSyncError: database.getMetadata("last_sync_error"), catalogHash:localCatalogHash,cloudCatalogHash,catalogMatchesCloud:matchValue===null?null:localCatalogHash===cloudCatalogHash&&matchValue==="true",catalogSyncedAt:database.getMetadata("catalog_verified_at") }); });
+      lastSyncAt: database.getMetadata("last_cloud_sync"), lastSyncError: database.getMetadata("last_sync_error"), catalogHash:localCatalogHash,cloudCatalogHash,catalogMatchesCloud:matchValue===null?null:localCatalogHash===cloudCatalogHash&&matchValue==="true",catalogSyncedAt:database.getMetadata("catalog_verified_at"),coupons:database.listCoupons() }); });
   ipcMain.handle("sales:checkout", async (event, raw: unknown) => {
     assertTrustedSender(event);
     const cashier = requireCashier();
     const input = validateCheckout(raw);
-    let supervisor: Awaited<ReturnType<PosDatabase["authenticate"]>> = null;
-    if (input.supervisorAuthorization) {
-      supervisor = await database.authenticate(input.supervisorAuthorization.username, input.supervisorAuthorization.pin, true);
-      if (!supervisor) throw new Error("Supervisor PIN is invalid or supervisor credentials are unavailable on this terminal.");
-    }
     const sale = { ...input };
     delete sale.supervisorAuthorization;
-    const authorized: AuthorizedCheckoutInput = { ...sale, deviceId: localDeviceId, cashierPolicyToken: cashier.policyToken,
-      supervisorId: supervisor?.id, supervisorPolicyToken: supervisor?.policyToken };
+      const authorized: AuthorizedCheckoutInput = { ...sale, deviceId: localDeviceId, cashierPolicyToken: cashier.policyToken };
     return database.checkout(authorized, cashier.id);
   });
   createWindow();

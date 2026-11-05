@@ -7,10 +7,11 @@ exports.PosDatabase = void 0;
 const better_sqlite3_1 = __importDefault(require("better-sqlite3"));
 const node_crypto_1 = require("node:crypto");
 const node_crypto_2 = require("node:crypto");
+const node_crypto_3 = require("node:crypto");
 const node_util_1 = require("node:util");
 const node_fs_1 = require("node:fs");
 const shared_business_logic_1 = require("@restaurant/shared-business-logic");
-const scrypt = (0, node_util_1.promisify)(node_crypto_2.scrypt);
+const scrypt = (0, node_util_1.promisify)(node_crypto_3.scrypt);
 class PosDatabase {
     db;
     constructor(filePath, migrationPath) {
@@ -40,6 +41,20 @@ class PosDatabase {
     getCashierCount() {
         return this.db.prepare("SELECT COUNT(*) AS count FROM cashiers WHERE active=1 AND offline_expires_at > ?").get(new Date().toISOString()).count;
     }
+    listCoupons() {
+        return this.db.prepare("SELECT code,type,value,starts_at AS startsAt,ends_at AS endsAt,active,max_uses AS maxUses,used_count AS usedCount FROM discount_coupons").all();
+    }
+    getCatalogHash() {
+        const categories = this.db.prepare(`SELECT id,cloud_id AS cloudId,name_en AS nameEn,name_ar AS nameAr,sort_order AS sortOrder,active,server_version AS serverVersion FROM categories ORDER BY id`).all();
+        const normalizedCategories = categories.map((category) => ({ ...category, active: Boolean(category.active) }));
+        const products = this.db.prepare(`SELECT id,cloud_id AS cloudId,sku,barcode,name_en AS nameEn,name_ar AS nameAr,category_id AS categoryId,price_minor AS priceMinor,currency_code AS currencyCode,active,server_version AS serverVersion,sizes_json,addons_json FROM products ORDER BY id`).all();
+        const normalizedProducts = products.map((product) => ({
+            id: product.id, cloudId: product.cloudId, sku: product.sku, barcode: product.barcode, nameEn: product.nameEn, nameAr: product.nameAr,
+            categoryId: product.categoryId, priceMinor: product.priceMinor, currencyCode: product.currencyCode, active: Boolean(product.active),
+            serverVersion: product.serverVersion, sizes: JSON.parse(product.sizes_json), addons: JSON.parse(product.addons_json),
+        }));
+        return (0, node_crypto_2.createHash)("sha256").update(JSON.stringify({ categories: normalizedCategories, products: normalizedProducts })).digest("hex");
+    }
     applyBootstrap(snapshot) {
         if (!snapshot.device?.id || !Array.isArray(snapshot.categories) || !Array.isArray(snapshot.products) || !Array.isArray(snapshot.cashiers))
             throw new Error("Invalid POS bootstrap response.");
@@ -67,6 +82,11 @@ class PosDatabase {
             for (const row of provisionedCashiers) {
                 cashier.run(row.id, row.cloudId, row.username.toLowerCase(), row.displayName, row.credentialHash, row.credentialSalt, row.verifierKind, row.policyVersion, row.offlineExpiresAt, row.canDiscount ? 1 : 0, row.maxDiscountPercent, row.maxDiscountMinor, row.supervisor ? 1 : 0, row.offlinePolicyToken);
             }
+            this.db.prepare("UPDATE discount_coupons SET active=0").run();
+            const coupon = this.db.prepare(`INSERT INTO discount_coupons(code,type,value,starts_at,ends_at,active,max_uses,used_count)
+        VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET type=excluded.type,value=excluded.value,starts_at=excluded.starts_at,ends_at=excluded.ends_at,active=excluded.active,max_uses=excluded.max_uses,used_count=MAX(discount_coupons.used_count,excluded.used_count)`);
+            for (const row of snapshot.coupons ?? [])
+                coupon.run(row.code.toUpperCase(), row.type, row.value, row.startsAt, row.endsAt, row.active ? 1 : 0, row.maxUses, row.usedCount);
             this.setMetadata("device_id", snapshot.device.id);
             this.setMetadata("branch_id", snapshot.device.branchId);
             if (snapshot.device.registerId)
@@ -76,7 +96,11 @@ class PosDatabase {
             if (snapshot.register)
                 this.setMetadata("register", JSON.stringify(snapshot.register));
             this.setMetadata("catalog_version", String(snapshot.catalogVersion));
+            this.setMetadata("catalog_hash", this.getCatalogHash());
+            this.setMetadata("cloud_catalog_hash", snapshot.catalogHash ?? this.getCatalogHash());
+            this.setMetadata("catalog_matches_cloud", String((snapshot.catalogHash ?? this.getCatalogHash()) === this.getCatalogHash()));
             this.setMetadata("last_catalog_sync", snapshot.serverTime);
+            this.setMetadata("catalog_verified_at", snapshot.serverTime);
             this.setMetadata("last_sync_error", "");
         });
         apply.immediate();
@@ -136,7 +160,7 @@ class PosDatabase {
             return null;
         const candidate = (await scrypt(pin, Buffer.from(cashier.credential_salt, "hex"), 64));
         const expected = Buffer.from(cashier.credential_hash, "hex");
-        const valid = expected.length === candidate.length && (0, node_crypto_2.timingSafeEqual)(candidate, expected);
+        const valid = expected.length === candidate.length && (0, node_crypto_3.timingSafeEqual)(candidate, expected);
         if (valid) {
             this.db.prepare("UPDATE cashiers SET failed_attempts=0,locked_until=NULL WHERE id=?").run(cashier.id);
             return { id: cashier.id, name: cashier.display_name, policyToken: cashier.policy_token, canDiscount: Boolean(cashier.can_discount), maxDiscountPercent: cashier.max_discount_percent, maxDiscountMinor: cashier.max_discount_minor, supervisor: Boolean(cashier.supervisor) };
@@ -181,9 +205,18 @@ class PosDatabase {
             if (!cashier || input.cashierPolicyToken !== cashier.policy_token)
                 throw new Error("Cashier permission snapshot is unavailable or out of date. Sync this device.");
             const cashierDiscountLimit = (0, shared_business_logic_1.discountLimitMinor)(subtotalMinor, Boolean(cashier.can_discount), cashier.max_discount_percent, cashier.max_discount_minor);
-            if (discountMinor > cashierDiscountLimit && (!input.supervisorId || !input.supervisorPolicyToken))
-                throw new Error("Supervisor approval is required for this discount.");
-            if (discountMinor > 0 && (!input.discountReason?.trim() || input.discountReason.trim().length > 250))
+            let coupon;
+            if (input.couponCode) {
+                coupon = db.prepare("SELECT code,type,value,starts_at,ends_at,active,max_uses,used_count FROM discount_coupons WHERE code=?").get(input.couponCode.trim().toUpperCase());
+                if (!coupon || !coupon.active || Date.parse(coupon.starts_at) > Date.now() || Date.parse(coupon.ends_at) < Date.now() || (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses))
+                    throw new Error("Coupon is invalid, expired, or has reached its usage limit. Sync the terminal and try again.");
+                const expected = coupon.type === "PERCENTAGE" ? Math.floor(subtotalMinor * coupon.value / 100) : Math.round(coupon.value * 100);
+                if (discountMinor !== Math.min(expected, subtotalMinor))
+                    throw new Error("Coupon discount does not match its configured value.");
+            }
+            else if (discountMinor > cashierDiscountLimit)
+                throw new Error("This discount exceeds your permitted limit.");
+            if (discountMinor > 0 && !coupon && (!input.discountReason?.trim() || input.discountReason.trim().length > 250))
                 throw new Error("A discount reason is required.");
             if (input.supervisorId) {
                 const supervisor = db.prepare("SELECT supervisor,active,offline_expires_at,policy_token FROM cashiers WHERE id=?").get(input.supervisorId);
@@ -213,14 +246,16 @@ class PosDatabase {
                 addPayment.run((0, node_crypto_1.randomUUID)(), orderId, payment.method, payment.amountMinor, payment.currencyCode, payment.processorReference ?? null, now);
             if (discountMinor > 0)
                 db.prepare(`INSERT INTO discount_events(id,order_id,cashier_id,supervisor_id,amount_minor,reason,policy_version,created_at)
-        VALUES(?,?,?,?,?,?,?,?)`).run((0, node_crypto_1.randomUUID)(), orderId, cashierId, input.supervisorId ?? null, discountMinor, input.discountReason.trim(), cashier.policy_version, now);
+        VALUES(?,?,?,?,?,?,?,?)`).run((0, node_crypto_1.randomUUID)(), orderId, cashierId, input.supervisorId ?? null, discountMinor, coupon ? `COUPON:${coupon.code}` : input.discountReason.trim(), cashier.policy_version, now);
+            if (coupon)
+                db.prepare("UPDATE discount_coupons SET used_count=used_count+1 WHERE code=?").run(coupon.code);
             const receiptNumber = `OFFLINE-${orderId.replaceAll("-", "").slice(0, 10).toUpperCase()}`;
             db.prepare("INSERT INTO receipts(id,order_id,receipt_number,updated_at) VALUES(?,?,?,?)").run((0, node_crypto_1.randomUUID)(), orderId, receiptNumber, now);
             const payload = JSON.stringify({
                 id: orderId, idempotencyKey: input.idempotencyKey, cashierId, createdAt: now,
                 currencyCode: input.currencyCode, subtotalMinor, discountMinor, taxMinor, totalMinor,
                 items: items.map((item) => ({ productId: item.product.cloud_id || item.product.id, productName: item.product.name_en, quantity: item.quantity, unitPriceMinor: item.unitPriceMinor, options: item.options ?? [] })),
-                payments: input.payments, discountReason: input.discountReason, cashierPolicyToken: cashier.policy_token,
+                payments: input.payments, discountReason: input.discountReason, couponCode: input.couponCode?.trim().toUpperCase(), cashierPolicyToken: cashier.policy_token,
                 supervisorId: input.supervisorId, supervisorPolicyToken: input.supervisorPolicyToken,
             });
             db.prepare(`INSERT INTO sync_queue(id,entity_type,entity_id,operation,payload_json,idempotency_key,next_attempt_at,created_at,updated_at)

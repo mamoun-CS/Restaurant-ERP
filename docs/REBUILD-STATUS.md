@@ -63,3 +63,11 @@ The user-facing deployment has two applications: the Windows Cashier (`apps/desk
 - Added a manager-only API endpoint at `/api/printing/category-routes` to read and save routes. Existing product route precedence remains unchanged; branch category routes are considered next, then the default kitchen printer.
 - Added an additive migration for branch-scoped category mappings. Existing category mappings are retained as legacy global rows and only apply when the mapped printer belongs to the invoice branch.
 - The branch-scoped category migration was applied to the local development database with the other pending migrations. ERP production build type-checking remains blocked by the incomplete local Next.js installation; production database state is unchanged.
+
+## POS Discounts and Coupons Update (2026-11-05)
+
+- Removed the supervisor username/PIN prompt from the Windows cashier. Manual discounts remain limited by the cashier's synchronized discount permission and require a reason; the cashier cannot exceed its offline policy.
+- Added coupon codes to ERP discount campaigns, with optional global usage limits, SQLite bootstrap caching, offline cashier coupon entry, local validity checks, and server-side sale validation/redemption during sync. Coupon use counts are retained locally when a bootstrap snapshot is older than an offline redemption.
+- Windows POS bootstrap only downloads active, current, full-order coupons. Product/category-scoped discount campaigns are excluded because the desktop cashier currently does not calculate item-scoped campaign totals.
+- Windows Cashier production build passed after syncing its installed shared-types declaration with the workspace package. ERP Prisma generation and build were not verified because the Prisma CLI is unavailable in `apps/online-erp/node_modules`.
+- Cash shifts and post-checkout invoice editing remain available in the existing Online ERP cashier but have not yet been brought into the Windows cashier. Local cash-shift reconciliation and safe offline invoice amendment/cancellation require explicit durable sync contracts; completed local sales are not silently editable.

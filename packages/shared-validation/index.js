@@ -8,7 +8,7 @@ const offlineSaleSchema = z.object({
   id: z.string().uuid(), idempotencyKey: z.string().uuid(), cashierId: z.string().min(1), createdAt: z.string().datetime(),
   currencyCode: z.literal("ILS"), subtotalMinor: z.number().int().nonnegative(), discountMinor: z.number().int().nonnegative(),
   taxMinor: z.number().int().nonnegative(), totalMinor: z.number().int().nonnegative(),
-  discountReason: z.string().max(250).optional(), cashierPolicyToken: z.string().min(20).max(4096),
+  discountReason: z.string().max(250).optional(), couponCode: z.string().min(3).max(40).optional(), cashierPolicyToken: z.string().min(20).max(4096),
   supervisorId: z.string().optional(), supervisorPolicyToken: z.string().min(20).max(4096).optional(),
   items: z.array(z.object({ productId: z.string().min(1), productName: z.string().min(1).max(200), quantity: z.number().int().positive().max(10000), unitPriceMinor: z.number().int().nonnegative(), options: z.array(optionSchema).max(30).default([]) })).min(1).max(200),
   payments: z.array(z.object({ method: z.literal("CASH"), currencyCode: z.literal("ILS"), amountMinor: z.number().int().positive(), processorReference: z.string().max(120).optional() })).min(1).max(10),

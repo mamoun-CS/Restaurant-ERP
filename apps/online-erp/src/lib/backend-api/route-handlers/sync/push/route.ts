@@ -47,12 +47,19 @@ export async function POST(request: Request) {
       const cashierPolicy = await verifyOfflinePolicyToken(order.cashierPolicyToken, new Date(order.createdAt));
       if (!cashierPolicy || cashierPolicy.deviceId !== device.id || cashierPolicy.userId !== order.cashierId || cashierPolicy.branchId !== device.branchId) throw Object.assign(new Error("Cashier policy token is invalid for this sale."), { permanent: true });
       const cashierLimit = discountLimitMinor(order.subtotalMinor, cashierPolicy.canDiscount, cashierPolicy.maxDiscountPercent, cashierPolicy.maxDiscountMinor);
+      let couponCampaign: {id:string;type:"FIXED"|"PERCENTAGE";value:unknown;startsAt:Date;endsAt:Date;active:boolean;maxUses:number|null;usedCount:number}|null = null;
+      if (order.couponCode) {
+        couponCampaign = await db.discountCampaign.findUnique({ where:{couponCode:order.couponCode.toUpperCase()}, select:{id:true,type:true,value:true,startsAt:true,endsAt:true,active:true,maxUses:true,usedCount:true} });
+        const couponValid = couponCampaign && couponCampaign.active && couponCampaign.startsAt <= new Date(order.createdAt) && couponCampaign.endsAt >= new Date(order.createdAt) && (couponCampaign.maxUses === null || couponCampaign.usedCount < couponCampaign.maxUses);
+        const couponDiscount = couponCampaign ? couponCampaign.type === "PERCENTAGE" ? Math.floor(order.subtotalMinor * Number(couponCampaign.value) / 100) : Math.round(Number(couponCampaign.value) * 100) : -1;
+        if (!couponValid || order.discountMinor !== Math.min(couponDiscount, order.subtotalMinor)) throw Object.assign(new Error("Coupon is invalid, expired, exhausted, or does not match this sale."), { permanent:true });
+      }
       let supervisorPolicy: Awaited<ReturnType<typeof verifyOfflinePolicyToken>> = null;
-      if (order.discountMinor > cashierLimit) {
+      if (order.discountMinor > cashierLimit && !order.couponCode) {
         if (!order.supervisorId || !order.supervisorPolicyToken || !order.discountReason?.trim()) throw Object.assign(new Error("This discount requires a supervisor and a reason."), { permanent: true });
         supervisorPolicy = await verifyOfflinePolicyToken(order.supervisorPolicyToken, new Date(order.createdAt));
         if (!supervisorPolicy?.supervisor || supervisorPolicy.userId !== order.supervisorId || supervisorPolicy.deviceId !== device.id || supervisorPolicy.branchId !== device.branchId) throw Object.assign(new Error("Supervisor policy token is invalid for this sale."), { permanent: true });
-      } else if (order.discountMinor > 0 && !order.discountReason?.trim()) throw Object.assign(new Error("A discount reason is required."), { permanent: true });
+      } else if (order.discountMinor > 0 && !order.couponCode && !order.discountReason?.trim()) throw Object.assign(new Error("A discount reason is required."), { permanent: true });
       const [cashierAssignment, products] = await Promise.all([
         db.posDeviceCashier.findFirst({ where: { deviceId: device.id, userId: order.cashierId, active: true, user: { active: true, role: "CASHIER", deletedAt: null } }, include: { user: true } }),
         db.product.findMany({ where: { id: { in: [...new Set(order.items.map((item) => item.productId))] } }, select: { id: true, categoryId: true, currentCost: true, requiresPreparation: true } }),
@@ -62,6 +69,10 @@ export async function POST(request: Request) {
       if (order.items.some((item) => !productById.has(item.productId))) throw Object.assign(new Error("Order includes a product that is unknown to the server."), { permanent: true });
       const createdAt = new Date(order.createdAt);
       const invoice = await db.$transaction(async (tx) => {
+        if (couponCampaign) {
+          const claimed = await tx.discountCampaign.updateMany({ where:{id:couponCampaign.id,active:true,startsAt:{lte:new Date(order.createdAt)},endsAt:{gte:new Date(order.createdAt)},...(couponCampaign.maxUses === null ? {} : {usedCount:{lt:couponCampaign.maxUses}})},data:{usedCount:{increment:1}} });
+          if (claimed.count !== 1) throw Object.assign(new Error("Coupon usage limit has been reached."), { permanent:true });
+        }
         const year = createdAt.getFullYear();
         const sequence = await tx.invoiceSequence.upsert({ where: { branchId_registerId_year: { branchId: device.branchId, registerId: device.registerId!, year } }, create: { branchId: device.branchId, registerId: device.registerId!, year, lastNumber: 1 }, update: { lastNumber: { increment: 1 } } });
         const [branch, register] = await Promise.all([tx.branch.findUniqueOrThrow({ where: { id: device.branchId } }), tx.cashRegister.findUniqueOrThrow({ where: { id: device.registerId! } })]);
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
           createdAt, number: official, officialNumber: official, idempotencyKey: order.idempotencyKey, clientTransactionId: order.id,
           subtotal: money(order.subtotalMinor), discountAmount: money(order.discountMinor), taxAmount: money(order.taxMinor),
           totalAmount: money(order.totalMinor), grandTotal: money(order.totalMinor), paymentMethod: "CASH", cashierId: order.cashierId,
-          branchId: device.branchId, status: "PAID", orderType: "PICKUP",
+          branchId: device.branchId, status: "PAID", orderType: "PICKUP", ...(couponCampaign?{discountId:couponCampaign.id}:{}),
           items: { create: order.items.map((item) => {
             const product = productById.get(item.productId)!;
             const unitPrice = money(item.unitPriceMinor);
@@ -89,7 +100,7 @@ export async function POST(request: Request) {
         if (order.items.some((item) => productById.get(item.productId)?.requiresPreparation)) {
           await tx.kitchenOrder.create({ data: { orderNumber: `KO-${randomUUID().slice(0, 8).toUpperCase()}`, invoiceId: created.id, branchId: device.branchId, cashierName: cashierAssignment.user.name, orderType: "PICKUP", items: order.items.map((item) => ({ productName: item.productName, quantity: item.quantity, options: item.options })) as Prisma.InputJsonValue } });
         }
-        await tx.auditLog.create({ data: { userId: order.cashierId, branchId: device.branchId, action: "OFFLINE_INVOICE_SYNCED", entityType: "Invoice", entityId: created.id, metadata: { deviceId: device.id, clientTransactionId: order.id, discountMinor: order.discountMinor, discountReason: order.discountReason ?? null, supervisorId: supervisorPolicy ? order.supervisorId : null, policyVersion: cashierPolicy.policyVersion } } });
+        await tx.auditLog.create({ data: { userId: order.cashierId, branchId: device.branchId, action: "OFFLINE_INVOICE_SYNCED", entityType: "Invoice", entityId: created.id, metadata: { deviceId: device.id, clientTransactionId: order.id, discountMinor: order.discountMinor, couponCode:order.couponCode??null, discountReason: order.discountReason ?? null, supervisorId: supervisorPolicy ? order.supervisorId : null, policyVersion: cashierPolicy.policyVersion } } });
         return { id: created.id, number: created.number };
       }, { isolationLevel: "Serializable" });
       acknowledgements.push({ clientTransactionId: order.id, invoiceId: invoice.id, officialNumber: invoice.number });

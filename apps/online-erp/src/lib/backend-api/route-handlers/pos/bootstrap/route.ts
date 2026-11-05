@@ -9,12 +9,13 @@ export async function GET(request: Request) {
   if (limited) return limited;
   const device = await authenticatePosDevice(request);
   if (!device) return NextResponse.json({ error: "A valid POS device token is required." }, { status: 401 });
-  const [branch, register, assignments, categories, products] = await Promise.all([
+  const [branch, register, assignments, categories, products, coupons] = await Promise.all([
     db.branch.findUnique({ where: { id: device.branchId }, select: { id: true, code: true, name: true, nameAr: true, address: true } }),
     device.registerId ? db.cashRegister.findUnique({ where: { id: device.registerId }, select: { id: true, number: true, name: true } }) : null,
     db.posDeviceCashier.findMany({ where: { deviceId: device.id, active: true, user: { active: true, deletedAt: null, role: "CASHIER", offlinePinHash: { not: null }, offlinePinSalt: { not: null }, offlinePinExpiresAt: { gt: new Date() } } }, include: { user: { select: { id: true, name: true, email: true, active: true, offlinePinHash: true, offlinePinSalt: true, offlinePinExpiresAt: true, offlineCredentialVersion: true, canDiscount: true, maxDiscountPercent: true, maxDiscountAmount: true, supervisor: true } } } }),
     db.category.findMany({ where: { active: true, deletedAt: null }, orderBy: { sortOrder: "asc" } }),
     db.product.findMany({ where: { active: true, deletedAt: null }, include: { translations: true, sizes: true, addons: true } }),
+    db.discountCampaign.findMany({ where: { active: true, couponCode: { not: null }, products:{none:{}},categories:{none:{}},startsAt: { lte: new Date() }, endsAt: { gte: new Date() } }, select: { couponCode:true,type:true,value:true,startsAt:true,endsAt:true,active:true,maxUses:true,usedCount:true } }),
   ]);
   const cashierById = new Map(assignments.map(({ user }) => [user.id, user]));
   const catalogCategories = categories.map((category) => ({ id: category.id, cloudId: category.id, nameEn: category.nameEn, nameAr: category.nameAr, sortOrder: category.sortOrder, active: category.active, serverVersion: category.updatedAt.getTime() }));
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
         credentialHash: cashier.offlinePinHash, credentialSalt: cashier.offlinePinSalt, verifierKind: "scrypt-v1",
         offlineExpiresAt: cashier.offlinePinExpiresAt!.toISOString(), offlinePolicyToken: await issueOfflinePolicyToken(policy, cashier.offlinePinExpiresAt!) };
     })),
+    coupons: coupons.map((coupon) => ({ code:coupon.couponCode!,type:coupon.type,value:Number(coupon.value),startsAt:coupon.startsAt.toISOString(),endsAt:coupon.endsAt.toISOString(),active:coupon.active,maxUses:coupon.maxUses,usedCount:coupon.usedCount })),
   };
   await db.posDevice.update({ where: { id: device.id }, data: { lastSyncAt: new Date(), lastSyncError: null } });
   return NextResponse.json(response, { headers: { "Cache-Control": "no-store" } });

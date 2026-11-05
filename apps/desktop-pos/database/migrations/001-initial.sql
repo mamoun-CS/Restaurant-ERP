@@ -63,6 +63,11 @@ CREATE TABLE IF NOT EXISTS cash_register_sessions (
   opened_at TEXT NOT NULL, closed_at TEXT, opening_minor INTEGER NOT NULL,
   closing_minor INTEGER, status TEXT NOT NULL CHECK(status IN ('OPEN','CLOSED'))
 );
+CREATE TABLE IF NOT EXISTS discount_coupons (
+  code TEXT PRIMARY KEY, type TEXT NOT NULL CHECK(type IN ('FIXED','PERCENTAGE')),
+  value REAL NOT NULL CHECK(value > 0), starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1, max_uses INTEGER, used_count INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS receipts (
   id TEXT PRIMARY KEY, order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE RESTRICT,
   receipt_number TEXT NOT NULL, print_status TEXT NOT NULL DEFAULT 'pending',

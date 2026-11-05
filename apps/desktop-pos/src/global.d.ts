@@ -16,7 +16,7 @@ declare global {
       saveInvoicePdf(receiptNumber:string): Promise<{saved:boolean;filePath:string|null}>;
       listProducts(search?: string): Promise<ProductSummary[]>;
       checkout(input: CheckoutInput): Promise<{orderId:string;receiptNumber:string;totalMinor:number}>;
-      getLocalStatus(): Promise<{databaseReady:boolean;catalogCount:number;cashierName:string|null;pendingCount:number;cashierCount:number;deviceEnrolled:boolean;selectedPrinterName:string|null;lastSyncAt:string|null;lastSyncError:string|null;catalogHash:string;cloudCatalogHash:string|null;catalogMatchesCloud:boolean|null;catalogSyncedAt:string|null}>;
+      getLocalStatus(): Promise<{databaseReady:boolean;catalogCount:number;cashierName:string|null;pendingCount:number;cashierCount:number;deviceEnrolled:boolean;selectedPrinterName:string|null;lastSyncAt:string|null;lastSyncError:string|null;catalogHash:string;cloudCatalogHash:string|null;catalogMatchesCloud:boolean|null;catalogSyncedAt:string|null;coupons?:{code:string;type:"FIXED"|"PERCENTAGE";value:number;startsAt:string;endsAt:string;active:boolean;maxUses:number|null;usedCount:number}[]}>;
     };
   }
 }

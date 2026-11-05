@@ -45,6 +45,10 @@ export class PosDatabase {
     return (this.db.prepare("SELECT COUNT(*) AS count FROM cashiers WHERE active=1 AND offline_expires_at > ?").get(new Date().toISOString()) as { count: number }).count;
   }
 
+  listCoupons() {
+    return this.db.prepare("SELECT code,type,value,starts_at AS startsAt,ends_at AS endsAt,active,max_uses AS maxUses,used_count AS usedCount FROM discount_coupons").all() as {code:string;type:"FIXED"|"PERCENTAGE";value:number;startsAt:string;endsAt:string;active:number;maxUses:number|null;usedCount:number}[];
+  }
+
   getCatalogHash(): string {
     const categories = this.db.prepare(`SELECT id,cloud_id AS cloudId,name_en AS nameEn,name_ar AS nameAr,sort_order AS sortOrder,active,server_version AS serverVersion FROM categories ORDER BY id`).all() as {id:string;cloudId:string;nameEn:string;nameAr:string;sortOrder:number;active:number;serverVersion:number}[];
     const normalizedCategories = categories.map((category) => ({...category,active:Boolean(category.active)}));
@@ -79,6 +83,10 @@ export class PosDatabase {
       for (const row of provisionedCashiers) {
         cashier.run(row.id, row.cloudId, row.username.toLowerCase(), row.displayName, row.credentialHash, row.credentialSalt, row.verifierKind, row.policyVersion, row.offlineExpiresAt, row.canDiscount ? 1 : 0, row.maxDiscountPercent, row.maxDiscountMinor, row.supervisor ? 1 : 0, row.offlinePolicyToken);
       }
+      this.db.prepare("UPDATE discount_coupons SET active=0").run();
+      const coupon = this.db.prepare(`INSERT INTO discount_coupons(code,type,value,starts_at,ends_at,active,max_uses,used_count)
+        VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET type=excluded.type,value=excluded.value,starts_at=excluded.starts_at,ends_at=excluded.ends_at,active=excluded.active,max_uses=excluded.max_uses,used_count=MAX(discount_coupons.used_count,excluded.used_count)`);
+      for (const row of snapshot.coupons ?? []) coupon.run(row.code.toUpperCase(), row.type, row.value, row.startsAt, row.endsAt, row.active ? 1 : 0, row.maxUses, row.usedCount);
       this.setMetadata("device_id", snapshot.device.id);
       this.setMetadata("branch_id", snapshot.device.branchId);
       if (snapshot.device.registerId) this.setMetadata("register_id", snapshot.device.registerId);
@@ -192,8 +200,14 @@ export class PosDatabase {
       const cashier = db.prepare("SELECT policy_version,policy_token,can_discount,max_discount_percent,max_discount_minor FROM cashiers WHERE id=? AND active=1").get(cashierId) as {policy_version:number;policy_token:string;can_discount:number;max_discount_percent:number;max_discount_minor:number}|undefined;
       if (!cashier || input.cashierPolicyToken !== cashier.policy_token) throw new Error("Cashier permission snapshot is unavailable or out of date. Sync this device.");
       const cashierDiscountLimit = discountLimitMinor(subtotalMinor, Boolean(cashier.can_discount), cashier.max_discount_percent, cashier.max_discount_minor);
-      if (discountMinor > cashierDiscountLimit && (!input.supervisorId || !input.supervisorPolicyToken)) throw new Error("Supervisor approval is required for this discount.");
-      if (discountMinor > 0 && (!input.discountReason?.trim() || input.discountReason.trim().length > 250)) throw new Error("A discount reason is required.");
+      let coupon: {code:string;type:string;value:number;starts_at:string;ends_at:string;active:number;max_uses:number|null;used_count:number}|undefined;
+      if (input.couponCode) {
+        coupon = db.prepare("SELECT code,type,value,starts_at,ends_at,active,max_uses,used_count FROM discount_coupons WHERE code=?").get(input.couponCode.trim().toUpperCase()) as typeof coupon;
+        if (!coupon || !coupon.active || Date.parse(coupon.starts_at) > Date.now() || Date.parse(coupon.ends_at) < Date.now() || (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses)) throw new Error("Coupon is invalid, expired, or has reached its usage limit. Sync the terminal and try again.");
+        const expected = coupon.type === "PERCENTAGE" ? Math.floor(subtotalMinor * coupon.value / 100) : Math.round(coupon.value * 100);
+        if (discountMinor !== Math.min(expected, subtotalMinor)) throw new Error("Coupon discount does not match its configured value.");
+      } else if (discountMinor > cashierDiscountLimit) throw new Error("This discount exceeds your permitted limit.");
+      if (discountMinor > 0 && !coupon && (!input.discountReason?.trim() || input.discountReason.trim().length > 250)) throw new Error("A discount reason is required.");
       if (input.supervisorId) {
         const supervisor = db.prepare("SELECT supervisor,active,offline_expires_at,policy_token FROM cashiers WHERE id=?").get(input.supervisorId) as {supervisor:number;active:number;offline_expires_at:string;policy_token:string}|undefined;
         if (!supervisor?.supervisor || !supervisor.active || Date.parse(supervisor.offline_expires_at) <= Date.now() || supervisor.policy_token !== input.supervisorPolicyToken) throw new Error("Supervisor approval is invalid or expired.");
@@ -222,7 +236,8 @@ export class PosDatabase {
         payment.currencyCode, payment.processorReference ?? null, now);
 
       if (discountMinor > 0) db.prepare(`INSERT INTO discount_events(id,order_id,cashier_id,supervisor_id,amount_minor,reason,policy_version,created_at)
-        VALUES(?,?,?,?,?,?,?,?)`).run(randomUUID(), orderId, cashierId, input.supervisorId ?? null, discountMinor, input.discountReason!.trim(), cashier.policy_version, now);
+        VALUES(?,?,?,?,?,?,?,?)`).run(randomUUID(), orderId, cashierId, input.supervisorId ?? null, discountMinor, coupon ? `COUPON:${coupon.code}` : input.discountReason!.trim(), cashier.policy_version, now);
+      if (coupon) db.prepare("UPDATE discount_coupons SET used_count=used_count+1 WHERE code=?").run(coupon.code);
 
       const receiptNumber = `OFFLINE-${orderId.replaceAll("-", "").slice(0, 10).toUpperCase()}`;
       db.prepare("INSERT INTO receipts(id,order_id,receipt_number,updated_at) VALUES(?,?,?,?)").run(randomUUID(), orderId, receiptNumber, now);
@@ -230,7 +245,7 @@ export class PosDatabase {
         id: orderId, idempotencyKey: input.idempotencyKey, cashierId, createdAt: now,
         currencyCode: input.currencyCode, subtotalMinor, discountMinor, taxMinor, totalMinor,
         items: items.map((item) => ({ productId: item.product.cloud_id || item.product.id, productName: item.product.name_en, quantity: item.quantity, unitPriceMinor: item.unitPriceMinor, options: item.options ?? [] })),
-        payments: input.payments, discountReason: input.discountReason, cashierPolicyToken: cashier.policy_token,
+        payments: input.payments, discountReason: input.discountReason, couponCode: input.couponCode?.trim().toUpperCase(), cashierPolicyToken: cashier.policy_token,
         supervisorId: input.supervisorId, supervisorPolicyToken: input.supervisorPolicyToken,
       });
       db.prepare(`INSERT INTO sync_queue(id,entity_type,entity_id,operation,payload_json,idempotency_key,next_attempt_at,created_at,updated_at)
