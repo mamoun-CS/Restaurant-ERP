@@ -78,17 +78,13 @@ type Printer = {
   cashDrawerOpenBeforePrint: boolean;
 };
 
-type Product = {
-  id: string;
-  sku: string;
-  translations: { name: string }[];
-};
-
 type Category = {
   id: string;
   nameEn: string;
   nameAr: string;
 };
+
+type CategoryRoute = { categoryId: string; branchId: string | null; printerConfigurationId: string };
 
 type Notice = { tone: "success" | "danger"; text: string } | null;
 
@@ -96,8 +92,8 @@ type Props = {
   branches: Branch[];
   devices: Device[];
   printers: Printer[];
-  products: Product[];
   categories: Category[];
+  categoryRoutes: CategoryRoute[];
 };
 
 type PrinterForm = {
@@ -126,8 +122,8 @@ export function PrintingSettingsPage({
   branches,
   devices: initialDevices,
   printers: initialPrinters,
-  products,
   categories,
+  categoryRoutes: initialCategoryRoutes,
 }: Props) {
   const { locale } = useLanguage();
   const ar = locale === "ar";
@@ -135,6 +131,8 @@ export function PrintingSettingsPage({
 
   const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [printers, setPrinters] = useState<Printer[]>(initialPrinters);
+  const [categoryRoutes, setCategoryRoutes] = useState<CategoryRoute[]>(initialCategoryRoutes);
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(branches[0]?.id || "");
   const [generating, setGenerating] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -156,6 +154,27 @@ export function PrintingSettingsPage({
     (branch: { name: string; nameAr?: string | null }) => (ar ? branch.nameAr || branch.name : branch.name),
     [ar],
   );
+
+  async function saveCategoryRoute(categoryId: string, printerConfigurationId: string) {
+    setSavingCategoryId(categoryId);
+    try {
+      const response = await fetch("/api/printing/category-routes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId, branchId: selectedBranchId, printerConfigurationId: printerConfigurationId || null }),
+      });
+      if (!response.ok) throw new Error("route-save-failed");
+      setCategoryRoutes((current) => [
+        ...current.filter((route) => route.categoryId !== categoryId || route.branchId !== selectedBranchId),
+        ...(printerConfigurationId ? [{ categoryId, branchId: selectedBranchId, printerConfigurationId }] : []),
+      ]);
+      setNotice({ tone: "success", text: copy.routeSaved });
+    } catch {
+      setNotice({ tone: "danger", text: copy.routeSaveError });
+    } finally {
+      setSavingCategoryId(null);
+    }
+  }
 
   const updateCountdown = useCallback(() => {
     if (!expiresAt) return;
@@ -826,19 +845,38 @@ export function PrintingSettingsPage({
             <Settings2 size={19} />
             <h2 className="text-lg font-bold">{copy.printerRouting}</h2>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4 mt-4">
-            <div className="rounded-lg border border-border p-4">
-              <b>{copy.recentProducts}</b>
-              <p className="text-sm text-muted mt-2">
-                {products.map((p) => p.translations[0]?.name || p.sku).join(", ") || copy.noProducts}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border p-4">
-              <b>{copy.categoriesLabel}</b>
-              <p className="text-sm text-muted mt-2">
-                {categories.map((c) => (ar ? c.nameAr : c.nameEn)).join(", ") || copy.noCategories}
-              </p>
-            </div>
+          <label className="block max-w-sm mt-4">
+            <span className="text-xs font-bold block mb-2">{copy.selectBranch}</span>
+            <select className="input" value={selectedBranchId} onChange={(event) => setSelectedBranchId(event.target.value)}>
+              <option value="">{copy.selectBranch}</option>
+              {branches.map((branch) => <option key={branch.id} value={branch.id}>{ar ? branch.nameAr || branch.name : branch.name}</option>)}
+            </select>
+          </label>
+          <div className="mt-4 space-y-3">
+            {categories.map((category) => {
+              const route = categoryRoutes.find((item) => item.categoryId === category.id && item.branchId === selectedBranchId);
+              const routePrinter = route && printers.find((printer) => printer.id === route.printerConfigurationId);
+              return (
+                <label key={category.id} className="grid sm:grid-cols-[minmax(0,1fr)_minmax(14rem,24rem)] gap-3 items-center rounded-lg border border-border p-3">
+                  <span className="font-medium">{ar ? category.nameAr : category.nameEn}</span>
+                  <select
+                    className="input"
+                    value={route?.printerConfigurationId || ""}
+                    disabled={!selectedBranchId || savingCategoryId === category.id}
+                    onChange={(event) => void saveCategoryRoute(category.id, event.target.value)}
+                  >
+                    <option value="">{copy.noCategoryOverride}</option>
+                    {route && route.branchId === null && routePrinter?.branchId !== selectedBranchId && (
+                      <option value={route.printerConfigurationId}>{copy.legacyRouteLabel}</option>
+                    )}
+                    {printers.filter((printer) => printer.branchId === selectedBranchId && printer.enabled && (printer.printerType === "KITCHEN" || printer.printerType === "BAR")).map((printer) => (
+                      <option key={printer.id} value={printer.id}>{printer.displayName} · {branchName(printer.branch)}</option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+            {!categories.length && <p className="text-sm text-muted">{copy.noCategories}</p>}
           </div>
           <p className="text-xs text-muted mt-4">{copy.routingHelp}</p>
         </section>
@@ -1313,7 +1351,12 @@ const englishCopy = {
   categoriesLabel: "Categories",
   noProducts: "No products",
   noCategories: "No categories",
-  routingHelp: "Product routes override category routes. Unrouted preparation items use the first enabled kitchen printer.",
+  routingHelp: "Category routing is optional. Product routes override category routes; without a category route, the default printer rules apply.",
+  noCategoryOverride: "No category override (use default)",
+  defaultKitchenPrinter: "Use default kitchen printer",
+  legacyRouteLabel: "Legacy route (other branch)",
+  routeSaved: "Category printer routing saved.",
+  routeSaveError: "Could not save category printer routing.",
   displayName: "Display Name",
   roleLabel: "Role / Purpose",
   roleCashier: "Cashier (Receipts)",
@@ -1420,7 +1463,12 @@ const arabicCopy: typeof englishCopy = {
   categoriesLabel: "التصنيفات",
   noProducts: "لا توجد منتجات",
   noCategories: "لا توجد تصنيفات",
-  routingHelp: "توجيهات المنتجات تتجاوز توجيهات التصنيفات. عناصر الإعداد غير الموجهة تستخدم أول طابعة مطبخ مفعلة.",
+  routingHelp: "توجيه التصنيف اختياري. توجيه المنتج يتجاوز توجيه التصنيف، وعند تركه بلا اختيار تطبق قواعد الطابعة الافتراضية.",
+  noCategoryOverride: "بدون تخصيص للتصنيف (استخدم الافتراضي)",
+  defaultKitchenPrinter: "استخدام طابعة المطبخ الافتراضية",
+  legacyRouteLabel: "توجيه قديم (فرع آخر)",
+  routeSaved: "تم حفظ توجيه طابعة التصنيف.",
+  routeSaveError: "تعذر حفظ توجيه طابعة التصنيف.",
   displayName: "اسم الطابعة في النظام",
   roleLabel: "الدور / الغرض",
   roleCashier: "الكاشير (فواتير الزبائن)",

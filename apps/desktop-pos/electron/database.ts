@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
@@ -44,6 +45,18 @@ export class PosDatabase {
     return (this.db.prepare("SELECT COUNT(*) AS count FROM cashiers WHERE active=1 AND offline_expires_at > ?").get(new Date().toISOString()) as { count: number }).count;
   }
 
+  getCatalogHash(): string {
+    const categories = this.db.prepare(`SELECT id,cloud_id AS cloudId,name_en AS nameEn,name_ar AS nameAr,sort_order AS sortOrder,active,server_version AS serverVersion FROM categories ORDER BY id`).all() as {id:string;cloudId:string;nameEn:string;nameAr:string;sortOrder:number;active:number;serverVersion:number}[];
+    const normalizedCategories = categories.map((category) => ({...category,active:Boolean(category.active)}));
+    const products = this.db.prepare(`SELECT id,cloud_id AS cloudId,sku,barcode,name_en AS nameEn,name_ar AS nameAr,category_id AS categoryId,price_minor AS priceMinor,currency_code AS currencyCode,active,server_version AS serverVersion,sizes_json,addons_json FROM products ORDER BY id`).all() as {id:string;cloudId:string;sku:string;barcode:string|null;nameEn:string;nameAr:string;categoryId:string;priceMinor:number;currencyCode:string;active:number;serverVersion:number;sizes_json:string;addons_json:string}[];
+    const normalizedProducts = products.map((product) => ({
+      id:product.id,cloudId:product.cloudId,sku:product.sku,barcode:product.barcode,nameEn:product.nameEn,nameAr:product.nameAr,
+      categoryId:product.categoryId,priceMinor:product.priceMinor,currencyCode:product.currencyCode,active:Boolean(product.active),
+      serverVersion:product.serverVersion,sizes:JSON.parse(product.sizes_json),addons:JSON.parse(product.addons_json),
+    }));
+    return createHash("sha256").update(JSON.stringify({ categories:normalizedCategories, products: normalizedProducts })).digest("hex");
+  }
+
   applyBootstrap(snapshot: BootstrapSnapshot): void {
     if (!snapshot.device?.id || !Array.isArray(snapshot.categories) || !Array.isArray(snapshot.products) || !Array.isArray(snapshot.cashiers)) throw new Error("Invalid POS bootstrap response.");
     const apply = this.db.transaction(() => {
@@ -72,7 +85,11 @@ export class PosDatabase {
       if (snapshot.branch) this.setMetadata("branch", JSON.stringify(snapshot.branch));
       if (snapshot.register) this.setMetadata("register", JSON.stringify(snapshot.register));
       this.setMetadata("catalog_version", String(snapshot.catalogVersion));
+      this.setMetadata("catalog_hash", this.getCatalogHash());
+      this.setMetadata("cloud_catalog_hash", snapshot.catalogHash ?? this.getCatalogHash());
+      this.setMetadata("catalog_matches_cloud", String((snapshot.catalogHash ?? this.getCatalogHash()) === this.getCatalogHash()));
       this.setMetadata("last_catalog_sync", snapshot.serverTime);
+      this.setMetadata("catalog_verified_at", snapshot.serverTime);
       this.setMetadata("last_sync_error", "");
     });
     apply.immediate();

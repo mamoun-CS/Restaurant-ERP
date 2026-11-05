@@ -1,4 +1,6 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from "electron";
+import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
@@ -11,6 +13,7 @@ let windowRef: BrowserWindow | undefined;
 let localDeviceId = "";
 let activeCashier: { id:string;name:string;expiresAt:number;policyToken:string;canDiscount:boolean;maxDiscountPercent:number;maxDiscountMinor:number;supervisor:boolean } | null = null;
 let syncRunning = false;
+let printAgentProcess: ChildProcess | null = null;
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 const packagedPage = pathToFileURL(join(app.getAppPath(), "dist", "index.html")).href;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL;
@@ -56,6 +59,60 @@ function getCloudConfig() {
   return { baseUrl, refreshSecret: safeStorage.decryptString(Buffer.from(encrypted, "hex")) };
 }
 
+function startBundledPrintAgent() {
+  if (!app.isPackaged || printAgentProcess) return;
+  const agentEntry = join(process.resourcesPath, "print-agent", "cli.js");
+  const appData = process.env.APPDATA || join(app.getPath("appData"));
+  const agentConfig = join(appData, "restaurant-erp-print-agent", "config.json");
+
+  // The print agent has its own legacy enrollment flow. Start it only when
+  // that configuration already exists and contains pairing credentials.
+  try {
+    if (!existsSync(agentEntry) || !existsSync(agentConfig)) return;
+    const config = JSON.parse(readFileSync(agentConfig, "utf8")) as { deviceId?: unknown; token?: unknown };
+    if (typeof config.deviceId !== "string" || typeof config.token !== "string" || !config.token) return;
+  } catch {
+    return;
+  }
+
+  printAgentProcess = spawn(process.execPath, [agentEntry, "run"], {
+    windowsHide: true,
+    stdio: "ignore",
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+  });
+  printAgentProcess.once("error", (error) => {
+    console.error("Could not start the bundled print agent:", error);
+    printAgentProcess = null;
+  });
+  printAgentProcess.once("exit", () => { printAgentProcess = null; });
+}
+
+function stopBundledPrintAgent() {
+  if (!printAgentProcess) return;
+  printAgentProcess.kill();
+  printAgentProcess = null;
+}
+
+function getConfiguredPrinter() {
+  return database.getMetadata("receipt_printer_name");
+}
+
+function printHtml(html: string, deviceName: string | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const printWindow = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });
+    printWindow.webContents.once("did-finish-load", () => {
+      printWindow.webContents.print({ silent: Boolean(deviceName), ...(deviceName ? { deviceName } : {}), printBackground: true }, (success, failureReason) => {
+        printWindow.close();
+        if (success) resolve(); else reject(new Error(failureReason || "Windows could not print the page."));
+      });
+    });
+    void printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`).catch((error) => {
+      printWindow.close();
+      reject(error);
+    });
+  });
+}
+
 async function getAccessToken(baseUrl: string, refreshSecret: string, force = false) {
   if (!force && cachedAccessToken && cachedAccessToken.expiresAt > Date.now() + 60_000) return cachedAccessToken.token;
   const response = await fetch(new URL("/api/v1/pos/devices/refresh", baseUrl), {
@@ -71,7 +128,13 @@ async function getAccessToken(baseUrl: string, refreshSecret: string, force = fa
 async function cloudGetBootstrap(baseUrl: string, accessToken: string) {
   const response = await fetch(new URL("/api/v1/pos/bootstrap", baseUrl), { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`Catalog refresh failed (${response.status}).`);
-  database.applyBootstrap(await response.json() as BootstrapSnapshot);
+  const snapshot = await response.json() as BootstrapSnapshot;
+  database.applyBootstrap(snapshot);
+  const localCatalogHash=database.getCatalogHash();
+  const cloudCatalogHash=snapshot.catalogHash ?? localCatalogHash;
+  database.setMetadata("cloud_catalog_hash", cloudCatalogHash);
+  database.setMetadata("catalog_matches_cloud", String(localCatalogHash===cloudCatalogHash));
+  database.setMetadata("catalog_verified_at", snapshot.serverTime);
   database.setMetadata("last_cloud_sync", new Date().toISOString());
 }
 
@@ -85,7 +148,8 @@ async function runSyncCycle() {
   try {
     let accessToken = await getAccessToken(config.baseUrl, config.refreshSecret);
     const lastCatalogSync = database.getMetadata("last_catalog_sync");
-    if (!lastCatalogSync || Date.now() - Date.parse(lastCatalogSync) > 5 * 60_000) {
+    const catalogOutOfDate = !lastCatalogSync || Date.now() - Date.parse(lastCatalogSync) > 5 * 60_000;
+    if (catalogOutOfDate || database.getMetadata("catalog_matches_cloud") === "false") {
       try { await cloudGetBootstrap(config.baseUrl, accessToken); }
       catch (error) {
         if (error instanceof Error && error.message.includes("(401)")) {
@@ -204,12 +268,48 @@ app.whenReady().then(() => {
     void runSyncCycle();
     return { enrolled: true, catalogCount: database.listProducts().length, cashierCount: database.getCashierCount() };
   });
-  ipcMain.handle("sync:trigger", (event) => { assertTrustedSender(event); void runSyncCycle(); return true; });
+  ipcMain.handle("sync:trigger", async (event) => { assertTrustedSender(event); await runSyncCycle(); return true; });
+  ipcMain.handle("catalog:refresh", async (event) => { assertTrustedSender(event); const config=getCloudConfig(); if(!config) throw new Error("Pair this terminal before refreshing the cloud catalog."); const accessToken=await getAccessToken(config.baseUrl,config.refreshSecret); await cloudGetBootstrap(config.baseUrl,accessToken); return {catalogCount:database.listProducts().length}; });
+  ipcMain.handle("printer:list", async (event) => { assertTrustedSender(event); return (await windowRef?.webContents.getPrintersAsync() ?? []).map((printer) => ({name:printer.name,displayName:printer.displayName,description:printer.description})); });
+  ipcMain.handle("printer:select", async (event, raw: unknown) => {
+    assertTrustedSender(event);
+    if (raw !== null && typeof raw !== "string") throw new Error("Choose a printer from the Windows printer list.");
+    if (typeof raw === "string" && !(await windowRef?.webContents.getPrintersAsync() ?? []).some((printer) => printer.name === raw)) throw new Error("That printer is no longer available. Refresh the list.");
+    if (raw) database.setMetadata("receipt_printer_name", raw); else database.setMetadata("receipt_printer_name", "");
+    return {selectedPrinter:raw};
+  });
+  ipcMain.handle("printer:windows-settings", async (event) => { assertTrustedSender(event); await shell.openExternal("ms-settings:printers"); return true; });
+  ipcMain.handle("printer:test", async (event) => {
+    assertTrustedSender(event);
+    const selected = getConfiguredPrinter();
+    const printer = selected && (await windowRef?.webContents.getPrintersAsync() ?? []).some((item) => item.name === selected) ? selected : null;
+    await printHtml("<!doctype html><meta charset='utf-8'><style>body{font:16px Arial,sans-serif;width:260px;margin:12px}h1{text-align:center;font-size:22px}p{text-align:center;margin:10px}</style><h1>Printer setup test</h1><p>Sheikh Al Kar POS</p><p>إذا ظهرت هذه الورقة، فالطابعة جاهزة</p><hr><p>Test completed</p>", printer);
+    return {printedTo:printer};
+  });
+  ipcMain.handle("printer:receipt", async (event) => {
+    assertTrustedSender(event);
+    const selected = getConfiguredPrinter();
+    const printer = selected && (await windowRef?.webContents.getPrintersAsync() ?? []).some((item) => item.name === selected) ? selected : null;
+    if (!windowRef) throw new Error("POS window is not available.");
+    await new Promise<void>((resolve,reject) => windowRef!.webContents.print({silent:Boolean(printer),...(printer?{deviceName:printer}:{}),printBackground:true},(success,reason)=>success?resolve():reject(new Error(reason||"Windows could not print the receipt."))));
+    return true;
+  });
+  ipcMain.handle("invoice:save-pdf", async (event, rawReceiptNumber: unknown) => {
+    assertTrustedSender(event);
+    if (!windowRef) throw new Error("POS window is not available.");
+    const receiptNumber = typeof rawReceiptNumber === "string" ? rawReceiptNumber.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 60) : "receipt";
+    const defaultPath = join(app.getPath("documents"), `${receiptNumber || "receipt"}.pdf`);
+    const choice = await dialog.showSaveDialog(windowRef, { title: "Save invoice as PDF", defaultPath, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    if (choice.canceled || !choice.filePath) return { saved: false, filePath: null };
+    const pdf = await windowRef.webContents.printToPDF({ pageSize: "A4", printBackground: true, margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 } });
+    writeFileSync(choice.filePath, pdf);
+    return { saved: true, filePath: choice.filePath };
+  });
   ipcMain.handle("catalog:list", (event, search: string) => { assertTrustedSender(event); requireCashier(); return database.listProducts(String(search).slice(0, 120)); });
-  ipcMain.handle("app:local-status", (event) => { assertTrustedSender(event); let deviceEnrolled = false; try { deviceEnrolled = Boolean(getCloudConfig()); } catch { deviceEnrolled = false; } return ({ databaseReady: true, catalogCount: database.listProducts().length,
+  ipcMain.handle("app:local-status", (event) => { assertTrustedSender(event); let deviceEnrolled = false; try { deviceEnrolled = Boolean(getCloudConfig()); } catch { deviceEnrolled = false; } const cloudCatalogHash=database.getMetadata("cloud_catalog_hash"); const localCatalogHash=database.getCatalogHash(); const matchValue=database.getMetadata("catalog_matches_cloud"); return ({ databaseReady: true, catalogCount: database.listProducts().length,
     cashierName: activeCashier?.expiresAt && activeCashier.expiresAt > Date.now() ? activeCashier.name : null,
-    pendingCount: database.getPendingCount(), cashierCount: database.getCashierCount(), deviceEnrolled,
-    lastSyncAt: database.getMetadata("last_cloud_sync"), lastSyncError: database.getMetadata("last_sync_error") }); });
+    pendingCount: database.getPendingCount(), cashierCount: database.getCashierCount(), deviceEnrolled, selectedPrinterName:database.getMetadata("receipt_printer_name")||null,
+    lastSyncAt: database.getMetadata("last_cloud_sync"), lastSyncError: database.getMetadata("last_sync_error"), catalogHash:localCatalogHash,cloudCatalogHash,catalogMatchesCloud:matchValue===null?null:localCatalogHash===cloudCatalogHash&&matchValue==="true",catalogSyncedAt:database.getMetadata("catalog_verified_at") }); });
   ipcMain.handle("sales:checkout", async (event, raw: unknown) => {
     assertTrustedSender(event);
     const cashier = requireCashier();
@@ -226,10 +326,14 @@ app.whenReady().then(() => {
     return database.checkout(authorized, cashier.id);
   });
   createWindow();
+  startBundledPrintAgent();
   database.recoverInterruptedSync();
   setInterval(() => { void runSyncCycle(); }, 20_000);
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
-app.on("before-quit", () => database?.close());
+app.on("before-quit", () => {
+  stopBundledPrintAgent();
+  database?.close();
+});

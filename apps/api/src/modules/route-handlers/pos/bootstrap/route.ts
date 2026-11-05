@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { authenticatePosDevice, issueOfflinePolicyToken } from "@/lib/pos-device-auth";
 import { rateLimit, requestIp } from "@/lib/api";
+import { createHash } from "node:crypto";
 
 export async function GET(request: Request) {
   const limited = rateLimit(`pos-bootstrap:${requestIp(request)}`, 30, 60_000);
@@ -16,22 +17,29 @@ export async function GET(request: Request) {
     db.product.findMany({ where: { active: true, deletedAt: null }, include: { translations: true, sizes: true, addons: true } }),
   ]);
   const cashierById = new Map(assignments.map(({ user }) => [user.id, user]));
+  const catalogCategories = categories.map((category) => ({ id: category.id, cloudId: category.id, nameEn: category.nameEn, nameAr: category.nameAr, sortOrder: category.sortOrder, active: category.active, serverVersion: category.updatedAt.getTime() }));
+  const catalogProducts = products.map((product) => ({
+    id: product.id, cloudId: product.id, sku: product.sku, barcode: product.barcode,
+    nameEn: product.translations.find((translation) => translation.locale === "en")?.name ?? product.sku,
+    nameAr: product.translations.find((translation) => translation.locale === "ar")?.name ?? product.sku,
+    categoryId: product.categoryId, priceMinor: Math.round(Number(product.price) * 100), currencyCode: "ILS",
+    active: product.active, serverVersion: product.updatedAt.getTime(),
+    sizes: product.sizes.map((size) => ({ nameEn: size.nameEn, nameAr: size.nameAr, deltaMinor: Math.round(Number(size.priceDelta) * 100) })),
+    addons: product.addons.map((addon) => ({ nameEn: addon.nameEn, nameAr: addon.nameAr, priceMinor: Math.round(Number(addon.price) * 100) })),
+  }));
+  const catalogHash = createHash("sha256").update(JSON.stringify({
+    categories: [...catalogCategories].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    products: [...catalogProducts].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  })).digest("hex");
   const response = {
     device: { id: device.id, branchId: device.branchId, registerId: device.registerId },
     branch,
     register,
     serverTime: new Date().toISOString(),
     catalogVersion: Math.max(0, ...products.map((product) => product.updatedAt.getTime()), ...categories.map((category) => category.updatedAt.getTime())),
-    categories: categories.map((category) => ({ id: category.id, cloudId: category.id, nameEn: category.nameEn, nameAr: category.nameAr, sortOrder: category.sortOrder, active: category.active, serverVersion: category.updatedAt.getTime() })),
-    products: products.map((product) => ({
-      id: product.id, cloudId: product.id, sku: product.sku, barcode: product.barcode,
-      nameEn: product.translations.find((translation) => translation.locale === "en")?.name ?? product.sku,
-      nameAr: product.translations.find((translation) => translation.locale === "ar")?.name ?? product.sku,
-      categoryId: product.categoryId, priceMinor: Math.round(Number(product.price) * 100), currencyCode: "ILS",
-      active: product.active, serverVersion: product.updatedAt.getTime(),
-      sizes: product.sizes.map((size) => ({ nameEn: size.nameEn, nameAr: size.nameAr, deltaMinor: Math.round(Number(size.priceDelta) * 100) })),
-      addons: product.addons.map((addon) => ({ nameEn: addon.nameEn, nameAr: addon.nameAr, priceMinor: Math.round(Number(addon.price) * 100) })),
-    })),
+    catalogHash,
+    categories: catalogCategories,
+    products: catalogProducts,
     cashiers: await Promise.all([...cashierById.values()].map(async (cashier) => {
       const policy = { deviceId: device.id, userId: cashier.id, branchId: device.branchId, policyVersion: cashier.offlineCredentialVersion,
         canDiscount: cashier.canDiscount, maxDiscountPercent: Number(cashier.maxDiscountPercent),

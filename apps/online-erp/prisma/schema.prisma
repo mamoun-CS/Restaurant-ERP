@@ -247,6 +247,7 @@ model Branch {
   cashShifts         CashShift[]
   printDevices       PrintDevice[]
   printerConfigs     PrinterConfiguration[]
+  categoryPrinterRoutes CategoryPrinterRoute[]
   printJobs          PrintJob[]
   printPairingCodes  PrintPairingCode[]
   posDevices         PosDevice[]
@@ -1281,13 +1282,16 @@ model CategoryPrinterRoute {
   id                     String               @id @default(cuid())
   categoryId             String
   category               Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  branchId               String?
+  branch                 Branch?              @relation(fields: [branchId], references: [id], onDelete: Cascade)
   printerConfigurationId String
   printerConfiguration   PrinterConfiguration @relation(fields: [printerConfigurationId], references: [id], onDelete: Cascade)
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
 
-  @@unique([categoryId])
+  @@unique([categoryId, branchId])
   @@index([printerConfigurationId])
+  @@index([branchId])
 }
 
 model PrintJob {

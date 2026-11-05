@@ -32,6 +32,23 @@ test("cloud bootstrap atomically replaces local catalog and cashier permissions"
   assert.equal(pos.getCashierCount(),0);
   assert.equal((raw.prepare("SELECT COUNT(*) AS n FROM products").get() as {n:number}).n,1);
   assert.equal(raw.prepare("SELECT value FROM sync_metadata WHERE key='catalog_version'").get()!==undefined,true);
+  assert.equal((raw.prepare("SELECT value FROM sync_metadata WHERE key='catalog_hash'").get() as {value:string}).value,pos.getCatalogHash());
+});
+
+test("catalog reconciliation detects a cloud price change and keeps SQLite sales and outbox",()=>{
+  pos.applyBootstrap(snapshot(2550));
+  const input:AuthorizedCheckoutInput={idempotencyKey:"catalog-preserve-000001",deviceId:"device-1",currencyCode:"ILS",cashierPolicyToken:"signed-policy-token",items:[{productId:"prod-1",quantity:1}],payments:[{method:"CASH",amountMinor:2550,currencyCode:"ILS"}]};
+  const sale=pos.checkout(input,"cashier-1");
+  const queued=pos.getPendingCount();
+  const before=pos.getCatalogHash();
+  pos.applyBootstrap(snapshot(2750,false));
+  const after=pos.getCatalogHash();
+  assert.notEqual(before,after);
+  assert.equal((raw.prepare("SELECT value FROM sync_metadata WHERE key='catalog_hash'").get() as {value:string}).value,after);
+  assert.equal(pos.listProducts("123456")[0].priceMinor,2750);
+  assert.equal(pos.getPendingCount(),queued);
+  assert.equal((raw.prepare("SELECT COUNT(*) AS n FROM orders WHERE id=?").get(sale.orderId) as {n:number}).n,1);
+  assert.equal((raw.prepare("SELECT COUNT(*) AS n FROM sync_queue WHERE entity_id=?").get(sale.orderId) as {n:number}).n,1);
 });
 
 test("sync queue recovers processing entries after restart and marks confirmed orders",()=>{

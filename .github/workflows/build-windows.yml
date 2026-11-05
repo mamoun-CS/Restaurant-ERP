@@ -1,0 +1,47 @@
+name: Build Windows POS Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "desktop-v*"
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/desktop-pos
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop-pos/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --install-links
+
+      - name: Run cashier tests
+        run: npm test
+
+      - name: Build and package NSIS installer
+        run: npm run package:windows
+
+      - name: Smoke test installed app and SQLite data preservation
+        shell: pwsh
+        run: ./scripts/smoke-installed-windows.ps1
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: restaurant-pos-windows-setup
+          path: apps/desktop-pos/release/Restaurant-POS-Setup.exe
+          if-no-files-found: error
+          retention-days: 30

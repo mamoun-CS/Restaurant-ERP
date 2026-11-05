@@ -27,7 +27,7 @@ export type BootstrapSnapshot = {
   device: { id: string; branchId: string; registerId: string | null };
   branch: { id: string; code: string; name: string; nameAr: string; address: string | null } | null;
   register: { id: string; number: string; name: string } | null;
-  serverTime: string; catalogVersion: number;
+  serverTime: string; catalogVersion: number; catalogHash?: string;
   categories: { id:string;cloudId:string;nameEn:string;nameAr:string;sortOrder:number;active:boolean;serverVersion:number }[];
   products: { id:string;cloudId:string;sku:string;barcode:string|null;nameEn:string;nameAr:string;categoryId:string;priceMinor:number;currencyCode:string;active:boolean;serverVersion:number;sizes:unknown[];addons:unknown[] }[];
   cashiers: { id:string;cloudId:string;username:string;displayName:string;credentialHash:string|null;credentialSalt:string|null;verifierKind:string;policyVersion:number;offlineExpiresAt:string;canDiscount:boolean;maxDiscountPercent:number;maxDiscountMinor:number;supervisor:boolean;offlinePolicyToken:string }[];

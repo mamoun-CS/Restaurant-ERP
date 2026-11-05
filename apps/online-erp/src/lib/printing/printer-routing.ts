@@ -20,12 +20,13 @@ export async function routeKitchenItems(tx: Tx, branchId: string, items: Routabl
   const [printers, productRoutes, categoryRoutes] = await Promise.all([
     tx.printerConfiguration.findMany({ where: { branchId, enabled: true, autoPrint: true, printerType: { in: ["KITCHEN", "BAR"] } }, orderBy: { createdAt: "asc" } }),
     tx.productPrinterRoute.findMany({ where: { productId: { in: printableItems.map((item) => item.productId).filter((value): value is string => Boolean(value)) } }, include: { printerConfiguration: true } }),
-    tx.categoryPrinterRoute.findMany({ where: { categoryId: { in: printableItems.map((item) => item.categoryId).filter((value): value is string => Boolean(value)) } }, include: { printerConfiguration: true } }),
+    tx.categoryPrinterRoute.findMany({ where: { categoryId: { in: printableItems.map((item) => item.categoryId).filter((value): value is string => Boolean(value)) }, OR: [{ branchId }, { branchId: null }] }, include: { printerConfiguration: true } }),
   ]);
 
   const defaultKitchen = printers.find((printer) => printer.printerType === "KITCHEN");
   const byProduct = new Map(productRoutes.map((route) => [route.productId, route.printerConfiguration]));
-  const byCategory = new Map(categoryRoutes.map((route) => [route.categoryId, route.printerConfiguration]));
+  const byCategory = new Map(categoryRoutes.filter((route) => route.branchId === null && route.printerConfiguration.branchId === branchId).map((route) => [route.categoryId, route.printerConfiguration]));
+  for (const route of categoryRoutes.filter((item) => item.branchId === branchId && item.printerConfiguration.branchId === branchId)) byCategory.set(route.categoryId, route.printerConfiguration);
   const groups = new Map<string, { printer: typeof printers[number]; items: RoutableInvoiceItem[] }>();
 
   for (const item of printableItems) {
