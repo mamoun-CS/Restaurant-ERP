@@ -28,6 +28,9 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --install-links
 
+      - name: Install print-agent locked dependencies
+        run: npm ci --prefix ../online-erp/print-agent
+
       - name: Run cashier tests
         run: npm test
 
