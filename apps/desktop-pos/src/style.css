@@ -112,4 +112,16 @@ header { height: 76px; background: #fff; border-bottom: 1px solid #e7ebe6; displ
 .printer-empty, .printer-notice { margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: #f2f6f1; color: #456253; font-size: 12px; }
 .pdf-message { overflow-wrap: anywhere; margin: 10px 0 0; color: #456253; font-size: 10px; }
 .printer-open { width: 100%; margin: 12px 0; }
+.language-toggle { min-height: 32px; padding: 0 12px; border: 1px solid #dce5dc; border-radius: 8px; background: #fff; color: #285344; font-size: 12px; font-weight: 700; }
+.login-card > .language-toggle { display: block; margin: -14px 0 18px auto; }
+.receipt-card > .language-toggle { display: block; margin: -18px 0 18px auto; }
+html[dir="rtl"] { font-family: "Segoe UI", Tahoma, Arial, sans-serif; }
+html[dir="rtl"] body { direction: rtl; }
+html[dir="rtl"] .cashier { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] .cart { border-left: 0; border-right: 1px solid #e5eae4; }
+html[dir="rtl"] .cart-head h2 span { margin-left: 0; margin-right: 5px; }
+html[dir="rtl"] .receipt-items { text-align: right; }
+html[dir="rtl"] .product { text-align: right; align-items: flex-start; }
+html[dir="rtl"] .login-card > .language-toggle, html[dir="rtl"] .receipt-card > .language-toggle { margin-left: 0; margin-right: auto; }
+html[dir="rtl"] input, html[dir="rtl"] select { text-align: right; }
 @media (max-width: 700px) { .printer-setup { margin: 12px; padding: 14px; } .catalog-sync-row { align-items: flex-start; flex-direction: column; } }
