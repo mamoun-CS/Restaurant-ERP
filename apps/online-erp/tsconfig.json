@@ -31,6 +31,7 @@
       "@restaurant/shared-business-logic": ["../../packages/shared-business-logic/index.js"]
     }
   },
+  "exclude": ["node_modules", ".next", ".next/**"],
   "include": [
     "next-env.d.ts",
     "**/*.ts",
@@ -38,8 +39,5 @@
     ".next/types/**/*.ts",
     "**/*.mts",
     ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }

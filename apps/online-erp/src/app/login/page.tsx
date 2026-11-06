@@ -16,8 +16,8 @@ import { useLanguage } from "@/components/language-provider";
 export default function LoginPage() {
   const { t, locale, setLocale } = useLanguage();
   const router = useRouter();
-  const [email, setEmail] = useState("admin@noura.test");
-  const [password, setPassword] = useState("Demo123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -143,23 +143,6 @@ export default function LoginPage() {
               <ArrowRight size={18} className="rtl:rotate-180" />
             </button>
           </form>
-          <div className="mt-8 card bg-background p-4">
-            <p className="text-xs font-bold text-muted uppercase tracking-wider mb-3">
-              {t("demoAccounts")}
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                onClick={() => {
-                  setEmail("cashier@noura.test");
-                  setPassword("Demo123!");
-                }}
-                className="text-start p-3 bg-surface rounded-xl border border-border"
-              >
-                <b className="block mb-1">{t("cashier")}</b>cashier@noura.test
-              </button>
-            </div>
-            <p className="text-xs text-muted mt-3">Password: Demo123!</p>
-          </div>
         </div>
       </section>
     </main>

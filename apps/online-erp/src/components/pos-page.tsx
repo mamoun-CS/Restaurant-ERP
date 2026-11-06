@@ -107,6 +107,7 @@ export default function PosPage() {
   const [confirming, setConfirming] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentChoice>("CASH");
+  const [cardReference, setCardReference] = useState("");
   const [deliveryMethod, setDeliveryMethod] =
     useState<DeliveryMethod>("TAKEAWAY");
   const [orderNotes, setOrderNotes] = useState("");
@@ -247,6 +248,10 @@ export default function PosPage() {
   }
   async function checkout() {
     if (checkingOut || !cart.length) return;
+    if (paymentMethod === "CREDIT_CARD" && !cardReference.trim()) {
+      alert(locale === "ar" ? "أدخل رقم مرجع عملية البطاقة." : "Enter the card transaction reference.");
+      return;
+    }
     setCheckingOut(true);
     try {
       if (editingInvoiceId) {
@@ -280,7 +285,7 @@ export default function PosPage() {
               amount: total,
               changeAmount: 0,
               ...(paymentMethod === "CREDIT_CARD"
-                ? { cardType: "VISA", transactionReference: `POS-${Date.now()}` }
+                ? { cardType: "CARD", transactionReference: cardReference.trim() }
                 : {}),
             },
           ],
@@ -334,7 +339,7 @@ export default function PosPage() {
             amount: total,
             changeAmount: 0,
             ...(paymentMethod === "CREDIT_CARD"
-              ? { cardType: "VISA", transactionReference: `POS-${Date.now()}` }
+              ? { cardType: "CARD", transactionReference: cardReference.trim() }
               : {}),
           },
         ],
@@ -579,6 +584,8 @@ export default function PosPage() {
           total={total}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
+          cardReference={cardReference}
+          setCardReference={setCardReference}
           deliveryMethod={deliveryMethod}
           setDeliveryMethod={setDeliveryMethod}
           orderNotes={orderNotes}
@@ -816,6 +823,8 @@ function CheckoutConfirmDialog({
   total,
   paymentMethod,
   setPaymentMethod,
+  cardReference,
+  setCardReference,
   deliveryMethod,
   setDeliveryMethod,
   orderNotes,
@@ -829,6 +838,8 @@ function CheckoutConfirmDialog({
   total: number;
   paymentMethod: PaymentChoice;
   setPaymentMethod: (value: PaymentChoice) => void;
+  cardReference: string;
+  setCardReference: (value: string) => void;
   deliveryMethod: DeliveryMethod;
   setDeliveryMethod: (value: DeliveryMethod) => void;
   orderNotes: string;
@@ -866,6 +877,12 @@ function CheckoutConfirmDialog({
               {t("confirmOrderMessage")}
             </p>
           </div>
+          {paymentMethod === "CREDIT_CARD" && (
+            <label className="mt-3 block">
+              <span className="text-xs font-bold mb-2 block">{t("cardTransactionReference")}</span>
+              <input className="input w-full" value={cardReference} onChange={(event) => setCardReference(event.target.value)} required maxLength={100} autoComplete="off" />
+            </label>
+          )}
           <button
             onClick={onClose}
             disabled={loading}
