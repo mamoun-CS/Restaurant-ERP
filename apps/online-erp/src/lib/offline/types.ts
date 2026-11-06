@@ -88,6 +88,7 @@ export type LocalProduct = {
   price: number;
   category: string;
   categoryAr?: string;
+  tags?: string[];
   emoji?: string;
   color?: string;
   active: boolean;

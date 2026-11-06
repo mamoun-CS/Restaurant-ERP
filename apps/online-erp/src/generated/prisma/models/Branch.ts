@@ -215,6 +215,7 @@ export type BranchWhereInput = {
   cashShifts?: Prisma.CashShiftListRelationFilter
   printDevices?: Prisma.PrintDeviceListRelationFilter
   printerConfigs?: Prisma.PrinterConfigurationListRelationFilter
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteListRelationFilter
   printJobs?: Prisma.PrintJobListRelationFilter
   printPairingCodes?: Prisma.PrintPairingCodeListRelationFilter
   posDevices?: Prisma.PosDeviceListRelationFilter
@@ -239,6 +240,7 @@ export type BranchOrderByWithRelationInput = {
   cashShifts?: Prisma.CashShiftOrderByRelationAggregateInput
   printDevices?: Prisma.PrintDeviceOrderByRelationAggregateInput
   printerConfigs?: Prisma.PrinterConfigurationOrderByRelationAggregateInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteOrderByRelationAggregateInput
   printJobs?: Prisma.PrintJobOrderByRelationAggregateInput
   printPairingCodes?: Prisma.PrintPairingCodeOrderByRelationAggregateInput
   posDevices?: Prisma.PosDeviceOrderByRelationAggregateInput
@@ -266,6 +268,7 @@ export type BranchWhereUniqueInput = Prisma.AtLeast<{
   cashShifts?: Prisma.CashShiftListRelationFilter
   printDevices?: Prisma.PrintDeviceListRelationFilter
   printerConfigs?: Prisma.PrinterConfigurationListRelationFilter
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteListRelationFilter
   printJobs?: Prisma.PrintJobListRelationFilter
   printPairingCodes?: Prisma.PrintPairingCodeListRelationFilter
   posDevices?: Prisma.PosDeviceListRelationFilter
@@ -318,6 +321,7 @@ export type BranchCreateInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -342,6 +346,7 @@ export type BranchUncheckedCreateInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -366,6 +371,7 @@ export type BranchUpdateInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -390,6 +396,7 @@ export type BranchUncheckedUpdateInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -658,6 +665,22 @@ export type BranchUpdateOneRequiredWithoutPrinterConfigsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.BranchUpdateToOneWithWhereWithoutPrinterConfigsInput, Prisma.BranchUpdateWithoutPrinterConfigsInput>, Prisma.BranchUncheckedUpdateWithoutPrinterConfigsInput>
 }
 
+export type BranchCreateNestedOneWithoutCategoryPrinterRoutesInput = {
+  create?: Prisma.XOR<Prisma.BranchCreateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedCreateWithoutCategoryPrinterRoutesInput>
+  connectOrCreate?: Prisma.BranchCreateOrConnectWithoutCategoryPrinterRoutesInput
+  connect?: Prisma.BranchWhereUniqueInput
+}
+
+export type BranchUpdateOneWithoutCategoryPrinterRoutesNestedInput = {
+  create?: Prisma.XOR<Prisma.BranchCreateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedCreateWithoutCategoryPrinterRoutesInput>
+  connectOrCreate?: Prisma.BranchCreateOrConnectWithoutCategoryPrinterRoutesInput
+  upsert?: Prisma.BranchUpsertWithoutCategoryPrinterRoutesInput
+  disconnect?: Prisma.BranchWhereInput | boolean
+  delete?: Prisma.BranchWhereInput | boolean
+  connect?: Prisma.BranchWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BranchUpdateToOneWithWhereWithoutCategoryPrinterRoutesInput, Prisma.BranchUpdateWithoutCategoryPrinterRoutesInput>, Prisma.BranchUncheckedUpdateWithoutCategoryPrinterRoutesInput>
+}
+
 export type BranchCreateNestedOneWithoutPrintJobsInput = {
   create?: Prisma.XOR<Prisma.BranchCreateWithoutPrintJobsInput, Prisma.BranchUncheckedCreateWithoutPrintJobsInput>
   connectOrCreate?: Prisma.BranchCreateOrConnectWithoutPrintJobsInput
@@ -689,6 +712,7 @@ export type BranchCreateWithoutUsersInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -712,6 +736,7 @@ export type BranchUncheckedCreateWithoutUsersInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -751,6 +776,7 @@ export type BranchUpdateWithoutUsersInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -774,6 +800,7 @@ export type BranchUncheckedUpdateWithoutUsersInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -797,6 +824,7 @@ export type BranchCreateWithoutInvoicesInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -820,6 +848,7 @@ export type BranchUncheckedCreateWithoutInvoicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -859,6 +888,7 @@ export type BranchUpdateWithoutInvoicesInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -882,6 +912,7 @@ export type BranchUncheckedUpdateWithoutInvoicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -905,6 +936,7 @@ export type BranchCreateWithoutCashRegistersInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -928,6 +960,7 @@ export type BranchUncheckedCreateWithoutCashRegistersInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -967,6 +1000,7 @@ export type BranchUpdateWithoutCashRegistersInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -990,6 +1024,7 @@ export type BranchUncheckedUpdateWithoutCashRegistersInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1014,6 +1049,7 @@ export type BranchCreateWithoutPosDevicesInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeCreateNestedManyWithoutBranchInput
@@ -1037,6 +1073,7 @@ export type BranchUncheckedCreateWithoutPosDevicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedCreateNestedManyWithoutBranchInput
@@ -1076,6 +1113,7 @@ export type BranchUpdateWithoutPosDevicesInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUpdateManyWithoutBranchNestedInput
@@ -1099,6 +1137,7 @@ export type BranchUncheckedUpdateWithoutPosDevicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedUpdateManyWithoutBranchNestedInput
@@ -1122,6 +1161,7 @@ export type BranchCreateWithoutPosPairingCodesInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1145,6 +1185,7 @@ export type BranchUncheckedCreateWithoutPosPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1184,6 +1225,7 @@ export type BranchUpdateWithoutPosPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1207,6 +1249,7 @@ export type BranchUncheckedUpdateWithoutPosPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1229,6 +1272,7 @@ export type BranchCreateWithoutCashShiftsInput = {
   cashRegisters?: Prisma.CashRegisterCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1252,6 +1296,7 @@ export type BranchUncheckedCreateWithoutCashShiftsInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1291,6 +1336,7 @@ export type BranchUpdateWithoutCashShiftsInput = {
   cashRegisters?: Prisma.CashRegisterUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1314,6 +1360,7 @@ export type BranchUncheckedUpdateWithoutCashShiftsInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1337,6 +1384,7 @@ export type BranchCreateWithoutPurchaseInvoicesInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1360,6 +1408,7 @@ export type BranchUncheckedCreateWithoutPurchaseInvoicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1399,6 +1448,7 @@ export type BranchUpdateWithoutPurchaseInvoicesInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1422,6 +1472,7 @@ export type BranchUncheckedUpdateWithoutPurchaseInvoicesInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1445,6 +1496,7 @@ export type BranchCreateWithoutSupplierPaymentsInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1468,6 +1520,7 @@ export type BranchUncheckedCreateWithoutSupplierPaymentsInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1507,6 +1560,7 @@ export type BranchUpdateWithoutSupplierPaymentsInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1530,6 +1584,7 @@ export type BranchUncheckedUpdateWithoutSupplierPaymentsInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1553,6 +1608,7 @@ export type BranchCreateWithoutInventoryMovementsInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1576,6 +1632,7 @@ export type BranchUncheckedCreateWithoutInventoryMovementsInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1615,6 +1672,7 @@ export type BranchUpdateWithoutInventoryMovementsInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1638,6 +1696,7 @@ export type BranchUncheckedUpdateWithoutInventoryMovementsInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1661,6 +1720,7 @@ export type BranchCreateWithoutPrintDevicesInput = {
   cashRegisters?: Prisma.CashRegisterCreateNestedManyWithoutBranchInput
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1684,6 +1744,7 @@ export type BranchUncheckedCreateWithoutPrintDevicesInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedCreateNestedManyWithoutBranchInput
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1723,6 +1784,7 @@ export type BranchUpdateWithoutPrintDevicesInput = {
   cashRegisters?: Prisma.CashRegisterUpdateManyWithoutBranchNestedInput
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1746,6 +1808,7 @@ export type BranchUncheckedUpdateWithoutPrintDevicesInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedUpdateManyWithoutBranchNestedInput
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1770,6 +1833,7 @@ export type BranchCreateWithoutPrintPairingCodesInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeCreateNestedManyWithoutBranchInput
@@ -1793,6 +1857,7 @@ export type BranchUncheckedCreateWithoutPrintPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedCreateNestedManyWithoutBranchInput
@@ -1832,6 +1897,7 @@ export type BranchUpdateWithoutPrintPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUpdateManyWithoutBranchNestedInput
@@ -1855,6 +1921,7 @@ export type BranchUncheckedUpdateWithoutPrintPairingCodesInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedUpdateManyWithoutBranchNestedInput
@@ -1877,6 +1944,7 @@ export type BranchCreateWithoutPrinterConfigsInput = {
   cashRegisters?: Prisma.CashRegisterCreateNestedManyWithoutBranchInput
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
@@ -1900,6 +1968,7 @@ export type BranchUncheckedCreateWithoutPrinterConfigsInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedCreateNestedManyWithoutBranchInput
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
@@ -1939,6 +2008,7 @@ export type BranchUpdateWithoutPrinterConfigsInput = {
   cashRegisters?: Prisma.CashRegisterUpdateManyWithoutBranchNestedInput
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
@@ -1962,6 +2032,119 @@ export type BranchUncheckedUpdateWithoutPrinterConfigsInput = {
   cashRegisters?: Prisma.CashRegisterUncheckedUpdateManyWithoutBranchNestedInput
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
+  printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
+  printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
+  posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
+  posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedUpdateManyWithoutBranchNestedInput
+}
+
+export type BranchCreateWithoutCategoryPrinterRoutesInput = {
+  id?: string
+  name: string
+  nameAr: string
+  code: string
+  address?: string | null
+  active?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  users?: Prisma.UserCreateNestedManyWithoutBranchInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutBranchInput
+  purchaseInvoices?: Prisma.PurchaseInvoiceCreateNestedManyWithoutBranchInput
+  supplierPayments?: Prisma.SupplierPaymentCreateNestedManyWithoutBranchInput
+  inventoryMovements?: Prisma.InventoryMovementCreateNestedManyWithoutBranchInput
+  cashRegisters?: Prisma.CashRegisterCreateNestedManyWithoutBranchInput
+  cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
+  printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
+  printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  printJobs?: Prisma.PrintJobCreateNestedManyWithoutBranchInput
+  printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
+  posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
+  posPairingCodes?: Prisma.PosDevicePairingCodeCreateNestedManyWithoutBranchInput
+}
+
+export type BranchUncheckedCreateWithoutCategoryPrinterRoutesInput = {
+  id?: string
+  name: string
+  nameAr: string
+  code: string
+  address?: string | null
+  active?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutBranchInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutBranchInput
+  purchaseInvoices?: Prisma.PurchaseInvoiceUncheckedCreateNestedManyWithoutBranchInput
+  supplierPayments?: Prisma.SupplierPaymentUncheckedCreateNestedManyWithoutBranchInput
+  inventoryMovements?: Prisma.InventoryMovementUncheckedCreateNestedManyWithoutBranchInput
+  cashRegisters?: Prisma.CashRegisterUncheckedCreateNestedManyWithoutBranchInput
+  cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
+  printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
+  printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  printJobs?: Prisma.PrintJobUncheckedCreateNestedManyWithoutBranchInput
+  printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
+  posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
+  posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedCreateNestedManyWithoutBranchInput
+}
+
+export type BranchCreateOrConnectWithoutCategoryPrinterRoutesInput = {
+  where: Prisma.BranchWhereUniqueInput
+  create: Prisma.XOR<Prisma.BranchCreateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedCreateWithoutCategoryPrinterRoutesInput>
+}
+
+export type BranchUpsertWithoutCategoryPrinterRoutesInput = {
+  update: Prisma.XOR<Prisma.BranchUpdateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedUpdateWithoutCategoryPrinterRoutesInput>
+  create: Prisma.XOR<Prisma.BranchCreateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedCreateWithoutCategoryPrinterRoutesInput>
+  where?: Prisma.BranchWhereInput
+}
+
+export type BranchUpdateToOneWithWhereWithoutCategoryPrinterRoutesInput = {
+  where?: Prisma.BranchWhereInput
+  data: Prisma.XOR<Prisma.BranchUpdateWithoutCategoryPrinterRoutesInput, Prisma.BranchUncheckedUpdateWithoutCategoryPrinterRoutesInput>
+}
+
+export type BranchUpdateWithoutCategoryPrinterRoutesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameAr?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUpdateManyWithoutBranchNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutBranchNestedInput
+  purchaseInvoices?: Prisma.PurchaseInvoiceUpdateManyWithoutBranchNestedInput
+  supplierPayments?: Prisma.SupplierPaymentUpdateManyWithoutBranchNestedInput
+  inventoryMovements?: Prisma.InventoryMovementUpdateManyWithoutBranchNestedInput
+  cashRegisters?: Prisma.CashRegisterUpdateManyWithoutBranchNestedInput
+  cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
+  printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
+  printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  printJobs?: Prisma.PrintJobUpdateManyWithoutBranchNestedInput
+  printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
+  posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
+  posPairingCodes?: Prisma.PosDevicePairingCodeUpdateManyWithoutBranchNestedInput
+}
+
+export type BranchUncheckedUpdateWithoutCategoryPrinterRoutesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameAr?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUncheckedUpdateManyWithoutBranchNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutBranchNestedInput
+  purchaseInvoices?: Prisma.PurchaseInvoiceUncheckedUpdateManyWithoutBranchNestedInput
+  supplierPayments?: Prisma.SupplierPaymentUncheckedUpdateManyWithoutBranchNestedInput
+  inventoryMovements?: Prisma.InventoryMovementUncheckedUpdateManyWithoutBranchNestedInput
+  cashRegisters?: Prisma.CashRegisterUncheckedUpdateManyWithoutBranchNestedInput
+  cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
+  printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
+  printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
   printJobs?: Prisma.PrintJobUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
@@ -1986,6 +2169,7 @@ export type BranchCreateWithoutPrintJobsInput = {
   cashShifts?: Prisma.CashShiftCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeCreateNestedManyWithoutBranchInput
@@ -2009,6 +2193,7 @@ export type BranchUncheckedCreateWithoutPrintJobsInput = {
   cashShifts?: Prisma.CashShiftUncheckedCreateNestedManyWithoutBranchInput
   printDevices?: Prisma.PrintDeviceUncheckedCreateNestedManyWithoutBranchInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedCreateNestedManyWithoutBranchInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedCreateNestedManyWithoutBranchInput
   posDevices?: Prisma.PosDeviceUncheckedCreateNestedManyWithoutBranchInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedCreateNestedManyWithoutBranchInput
@@ -2048,6 +2233,7 @@ export type BranchUpdateWithoutPrintJobsInput = {
   cashShifts?: Prisma.CashShiftUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUpdateManyWithoutBranchNestedInput
@@ -2071,6 +2257,7 @@ export type BranchUncheckedUpdateWithoutPrintJobsInput = {
   cashShifts?: Prisma.CashShiftUncheckedUpdateManyWithoutBranchNestedInput
   printDevices?: Prisma.PrintDeviceUncheckedUpdateManyWithoutBranchNestedInput
   printerConfigs?: Prisma.PrinterConfigurationUncheckedUpdateManyWithoutBranchNestedInput
+  categoryPrinterRoutes?: Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput
   printPairingCodes?: Prisma.PrintPairingCodeUncheckedUpdateManyWithoutBranchNestedInput
   posDevices?: Prisma.PosDeviceUncheckedUpdateManyWithoutBranchNestedInput
   posPairingCodes?: Prisma.PosDevicePairingCodeUncheckedUpdateManyWithoutBranchNestedInput
@@ -2091,6 +2278,7 @@ export type BranchCountOutputType = {
   cashShifts: number
   printDevices: number
   printerConfigs: number
+  categoryPrinterRoutes: number
   printJobs: number
   printPairingCodes: number
   posDevices: number
@@ -2107,6 +2295,7 @@ export type BranchCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   cashShifts?: boolean | BranchCountOutputTypeCountCashShiftsArgs
   printDevices?: boolean | BranchCountOutputTypeCountPrintDevicesArgs
   printerConfigs?: boolean | BranchCountOutputTypeCountPrinterConfigsArgs
+  categoryPrinterRoutes?: boolean | BranchCountOutputTypeCountCategoryPrinterRoutesArgs
   printJobs?: boolean | BranchCountOutputTypeCountPrintJobsArgs
   printPairingCodes?: boolean | BranchCountOutputTypeCountPrintPairingCodesArgs
   posDevices?: boolean | BranchCountOutputTypeCountPosDevicesArgs
@@ -2189,6 +2378,13 @@ export type BranchCountOutputTypeCountPrinterConfigsArgs<ExtArgs extends runtime
 /**
  * BranchCountOutputType without action
  */
+export type BranchCountOutputTypeCountCategoryPrinterRoutesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CategoryPrinterRouteWhereInput
+}
+
+/**
+ * BranchCountOutputType without action
+ */
 export type BranchCountOutputTypeCountPrintJobsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.PrintJobWhereInput
 }
@@ -2233,6 +2429,7 @@ export type BranchSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   cashShifts?: boolean | Prisma.Branch$cashShiftsArgs<ExtArgs>
   printDevices?: boolean | Prisma.Branch$printDevicesArgs<ExtArgs>
   printerConfigs?: boolean | Prisma.Branch$printerConfigsArgs<ExtArgs>
+  categoryPrinterRoutes?: boolean | Prisma.Branch$categoryPrinterRoutesArgs<ExtArgs>
   printJobs?: boolean | Prisma.Branch$printJobsArgs<ExtArgs>
   printPairingCodes?: boolean | Prisma.Branch$printPairingCodesArgs<ExtArgs>
   posDevices?: boolean | Prisma.Branch$posDevicesArgs<ExtArgs>
@@ -2284,6 +2481,7 @@ export type BranchInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   cashShifts?: boolean | Prisma.Branch$cashShiftsArgs<ExtArgs>
   printDevices?: boolean | Prisma.Branch$printDevicesArgs<ExtArgs>
   printerConfigs?: boolean | Prisma.Branch$printerConfigsArgs<ExtArgs>
+  categoryPrinterRoutes?: boolean | Prisma.Branch$categoryPrinterRoutesArgs<ExtArgs>
   printJobs?: boolean | Prisma.Branch$printJobsArgs<ExtArgs>
   printPairingCodes?: boolean | Prisma.Branch$printPairingCodesArgs<ExtArgs>
   posDevices?: boolean | Prisma.Branch$posDevicesArgs<ExtArgs>
@@ -2305,6 +2503,7 @@ export type $BranchPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     cashShifts: Prisma.$CashShiftPayload<ExtArgs>[]
     printDevices: Prisma.$PrintDevicePayload<ExtArgs>[]
     printerConfigs: Prisma.$PrinterConfigurationPayload<ExtArgs>[]
+    categoryPrinterRoutes: Prisma.$CategoryPrinterRoutePayload<ExtArgs>[]
     printJobs: Prisma.$PrintJobPayload<ExtArgs>[]
     printPairingCodes: Prisma.$PrintPairingCodePayload<ExtArgs>[]
     posDevices: Prisma.$PosDevicePayload<ExtArgs>[]
@@ -2722,6 +2921,7 @@ export interface Prisma__BranchClient<T, Null = never, ExtArgs extends runtime.T
   cashShifts<T extends Prisma.Branch$cashShiftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$cashShiftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CashShiftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   printDevices<T extends Prisma.Branch$printDevicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$printDevicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrintDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   printerConfigs<T extends Prisma.Branch$printerConfigsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$printerConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrinterConfigurationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  categoryPrinterRoutes<T extends Prisma.Branch$categoryPrinterRoutesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$categoryPrinterRoutesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CategoryPrinterRoutePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   printJobs<T extends Prisma.Branch$printJobsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$printJobsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrintJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   printPairingCodes<T extends Prisma.Branch$printPairingCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$printPairingCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrintPairingCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   posDevices<T extends Prisma.Branch$posDevicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Branch$posDevicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PosDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3369,6 +3569,30 @@ export type Branch$printerConfigsArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.PrinterConfigurationScalarFieldEnum | Prisma.PrinterConfigurationScalarFieldEnum[]
+}
+
+/**
+ * Branch.categoryPrinterRoutes
+ */
+export type Branch$categoryPrinterRoutesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CategoryPrinterRoute
+   */
+  select?: Prisma.CategoryPrinterRouteSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CategoryPrinterRoute
+   */
+  omit?: Prisma.CategoryPrinterRouteOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CategoryPrinterRouteInclude<ExtArgs> | null
+  where?: Prisma.CategoryPrinterRouteWhereInput
+  orderBy?: Prisma.CategoryPrinterRouteOrderByWithRelationInput | Prisma.CategoryPrinterRouteOrderByWithRelationInput[]
+  cursor?: Prisma.CategoryPrinterRouteWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CategoryPrinterRouteScalarFieldEnum | Prisma.CategoryPrinterRouteScalarFieldEnum[]
 }
 
 /**

@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { assertSameOrigin, rateLimit, requestIp } from "@/lib/api";
 
 const scrypt = promisify(scryptCallback);
-const schema = z.object({ pin: z.string().regex(/^\d{4,12}$/), offlineDays: z.number().int().min(1).max(90).default(30), canDiscount: z.boolean().default(false), maxDiscountPercent: z.number().min(0).max(100).default(0), maxDiscountAmount: z.number().min(0).max(100000).default(0), supervisor: z.boolean().default(false) });
+const schema = z.object({ pin: z.string().regex(/^\d{4,12}$/).optional(), offlineDays: z.number().int().min(1).max(90).default(30), neverExpires: z.boolean().default(false), canDiscount: z.boolean().default(false), maxDiscountPercent: z.number().min(0).max(100).default(0), maxDiscountAmount: z.number().min(0).max(100000).default(0), supervisor: z.boolean().default(false) });
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const csrfError = assertSameOrigin(request);
@@ -20,13 +20,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid POS authentication settings.", details: parsed.error.flatten() }, { status: 400 });
   const { id } = await params;
-  const target = await db.user.findFirst({ where: { id, role: "CASHIER", deletedAt: null } });
-  if (!target) return NextResponse.json({ error: "Cashier not found." }, { status: 404 });
-  const salt = randomBytes(16);
-  const pinHash = (await scrypt(parsed.data.pin, salt, 64)) as Buffer;
-  const expiry = new Date(Date.now() + parsed.data.offlineDays * 24 * 60 * 60_000);
+  const target = await db.user.findFirst({ where: { id, role: { in: ["CASHIER", "ADMIN"] }, deletedAt: null } });
+  if (!target) return NextResponse.json({ error: "POS account not found." }, { status: 404 });
+  if (!parsed.data.pin && (!target.offlinePinHash || !target.offlinePinSalt || (target.offlinePinExpiresAt && target.offlinePinExpiresAt <= new Date()))) return NextResponse.json({ error: "Set a new PIN before saving a policy for this account." }, { status: 400 });
+  const salt = parsed.data.pin ? randomBytes(16) : null;
+  const pinHash = parsed.data.pin && salt ? (await scrypt(parsed.data.pin, salt, 64)) as Buffer : null;
+  const expiry = parsed.data.neverExpires ? null : new Date(Date.now() + parsed.data.offlineDays * 24 * 60 * 60_000);
   const { pin: _pin, ...policy } = parsed.data;
-  await db.user.update({ where: { id }, data: { offlinePinHash: pinHash.toString("hex"), offlinePinSalt: salt.toString("hex"), offlinePinExpiresAt: expiry, offlineCredentialVersion: { increment: 1 }, canDiscount: policy.canDiscount, maxDiscountPercent: policy.maxDiscountPercent, maxDiscountAmount: policy.maxDiscountAmount, supervisor: policy.supervisor } });
-  await db.auditLog.create({ data: { userId: user.userId, branchId: target.branchId, action: "CASHIER_POS_CREDENTIAL_UPDATED", entityType: "User", entityId: id, metadata: { offlineExpiresAt: expiry.toISOString(), canDiscount: policy.canDiscount, maxDiscountPercent: policy.maxDiscountPercent, maxDiscountAmount: policy.maxDiscountAmount, supervisor: policy.supervisor } } });
-  return NextResponse.json({ success: true, offlineExpiresAt: expiry.toISOString(), policyVersion: target.offlineCredentialVersion + 1 });
+  const supervisor = target.role === "ADMIN" || policy.supervisor;
+  await db.user.update({ where: { id }, data: { ...(pinHash&&salt?{offlinePinHash:pinHash.toString("hex"),offlinePinSalt:salt.toString("hex")}:{}), offlinePinExpiresAt: expiry, offlineCredentialVersion: { increment: 1 }, canDiscount: policy.canDiscount, maxDiscountPercent: policy.maxDiscountPercent, maxDiscountAmount: policy.maxDiscountAmount, supervisor } });
+  await db.auditLog.create({ data: { userId: user.userId, branchId: target.branchId, action: target.role === "ADMIN" ? "ADMIN_POS_CREDENTIAL_UPDATED" : "CASHIER_POS_CREDENTIAL_UPDATED", entityType: "User", entityId: id, metadata: { offlineExpiresAt: expiry?.toISOString() ?? null, canDiscount: policy.canDiscount, maxDiscountPercent: policy.maxDiscountPercent, maxDiscountAmount: policy.maxDiscountAmount, supervisor, accountRole:target.role } } });
+  return NextResponse.json({ success: true, offlineExpiresAt: expiry?.toISOString() ?? null, policyVersion: target.offlineCredentialVersion + 1 });
 }

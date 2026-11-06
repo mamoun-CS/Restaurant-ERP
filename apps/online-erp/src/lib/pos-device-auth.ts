@@ -32,15 +32,15 @@ export type OfflinePolicy = {
   canDiscount: boolean; maxDiscountPercent: number; maxDiscountMinor: number; supervisor: boolean;
 };
 
-export async function issueOfflinePolicyToken(policy: OfflinePolicy, expiresAt: Date) {
-  return new SignJWT({ type: "offline_pos_policy", ...policy })
+export async function issueOfflinePolicyToken(policy: OfflinePolicy, expiresAt: Date | null) {
+  const token = new SignJWT({ type: "offline_pos_policy", ...policy })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(policy.userId)
     .setIssuer("restaurant-erp")
     .setAudience("restaurant-pos-policy")
-    .setIssuedAt()
-    .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
-    .sign(getJwtSecret());
+    .setIssuedAt();
+  if (expiresAt) token.setExpirationTime(Math.floor(expiresAt.getTime() / 1000));
+  return token.sign(getJwtSecret());
 }
 
 export async function verifyOfflinePolicyToken(token: string, at: Date): Promise<OfflinePolicy | null> {

@@ -91,7 +91,8 @@ type DeliveryMethod = "DINE_IN" | "TAKEAWAY" | "DELIVERY";
 export default function PosPage() {
   const { t, locale, setLocale } = useLanguage();
   const [productList, setProductList] = useState<LocalProduct[]>(products);
-  const [category, setCategory] = useState("All");
+  const [category, setCategory] = useState("");
+  const [menuGroup, setMenuGroup] = useState("");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>(() => {
     // Restore cart from localStorage on initial mount (survives power cuts)
@@ -112,12 +113,18 @@ export default function PosPage() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [customer, setCustomer] = useState({ name: "", phone: "" });
-  const cats = ["All", ...new Set(productList.map((p) => p.category))];
-  const filtered = productList.filter(
-    (p) =>
-      (category === "All" || p.category === category) &&
-      (p.nameEn + p.nameAr).toLowerCase().includes(search.toLowerCase()),
-  );
+  const menuCategoryList = [...new Map(productList.map((product) => [product.category, { id: product.category, nameEn: product.category, nameAr: product.categoryAr || product.category }])).values()];
+  const groupForCategory = (nameAr: string) => nameAr.includes("البروست") ? "broast" : nameAr.includes("شاورما") || nameAr.includes("الأجنحة") ? "meals" : nameAr.includes("ساندويش") || nameAr.includes("برغر") ? "sandwiches" : nameAr.includes("مشروبات") ? "drinks" : nameAr.includes("مقبلات") ? "appetizers" : nameAr.includes("صوص") ? "sauces" : "other";
+  const groupLabels: Record<string, { ar: string; en: string }> = { broast:{ar:"بروست",en:"Broast"}, sandwiches:{ar:"ساندويشات",en:"Sandwiches"}, meals:{ar:"وجبات",en:"Meals"}, appetizers:{ar:"مقبلات",en:"Appetizers"}, sauces:{ar:"صوصات",en:"Sauces"}, drinks:{ar:"مشروبات",en:"Drinks"}, other:{ar:"أخرى",en:"Other"} };
+  const groups = ["broast","sandwiches","meals","appetizers","sauces","drinks","other"].map((id) => ({ id, categories: menuCategoryList.filter((item) => groupForCategory(item.nameAr) === id) })).filter((item) => item.categories.length > 0);
+  const selectedGroup = groups.find((item) => item.id === menuGroup);
+  const needsSubcategory = (selectedGroup?.categories.length ?? 0) > 1;
+  const filtered = productList.filter((p) => {
+    const matchesSearch = (p.nameEn + p.nameAr + (p.sku || "") + (p.tags || []).join(" ")).toLocaleLowerCase().includes(search.toLocaleLowerCase());
+    const matchesCategory = !category || p.category === category;
+    const matchesGroup = !menuGroup || groupForCategory(p.categoryAr || "") === menuGroup;
+    return matchesSearch && matchesCategory && matchesGroup;
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
@@ -432,7 +439,7 @@ export default function PosPage() {
                   className="input input-icon-start"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder={t("search") + " products…"}
+                  placeholder={locale === "ar" ? "ابحث عن صنف أو امسح الباركود…" : "Search products or scan a barcode…"}
                 />
               </div>
               <Link
@@ -450,21 +457,9 @@ export default function PosPage() {
                 <Store size={18} />
               </Link>
             </div>
-            <div className="flex gap-2 overflow-x-auto scrollbar-none mt-4 pb-2">
-              {cats.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={`h-10 px-4 rounded-xl whitespace-nowrap text-sm font-semibold transition ${category === c ? "bg-secondary text-white" : "bg-background text-muted hover:text-text"}`}
-                >
-                  {c === "All"
-                    ? t("allCategories")
-                    : locale === "ar"
-                      ? products.find((p) => p.category === c)?.categoryAr
-                      : c}
-                </button>
-              ))}
-            </div>
+            {!search.trim() && <><div className="flex flex-wrap gap-2 mt-4 pb-2" aria-label={locale === "ar" ? "الأقسام الرئيسية" : "Main menu sections"}>
+              {groups.map((group) => <button key={group.id} onClick={() => { setMenuGroup(group.id); setCategory(group.categories.length === 1 ? group.categories[0].id : ""); }} className={`h-11 px-4 rounded-xl whitespace-nowrap text-sm font-semibold transition inline-flex items-center gap-2 ${menuGroup === group.id ? "bg-secondary text-white shadow-sm" : "bg-background text-muted hover:text-text"}`}><span aria-hidden="true">{group.id === "broast" ? "🍗" : group.id === "sandwiches" ? "🥪" : group.id === "meals" ? "🍽️" : group.id === "drinks" ? "🥤" : group.id === "sauces" ? "🥣" : group.id === "appetizers" ? "🍟" : "☰"}</span>{locale === "ar" ? groupLabels[group.id].ar : groupLabels[group.id].en}</button>)}
+            </div>{selectedGroup && needsSubcategory && <div className="flex flex-wrap gap-2 mb-2 rounded-xl border border-border bg-background/60 p-2" aria-label={locale === "ar" ? "الفئات الفرعية" : "Subcategories"}>{selectedGroup.categories.map((item) => <button key={item.id} onClick={() => setCategory(item.id)} className={`h-9 px-3 rounded-lg whitespace-nowrap text-sm font-medium transition ${category === item.id ? "bg-primary-soft text-primary ring-1 ring-primary/30" : "bg-surface text-muted hover:text-text"}`}>{locale === "ar" ? item.nameAr : item.nameEn}</button>)}</div>}</>}
           </div>
           <div className="flex-1 overflow-y-auto p-3 sm:p-5">
             <div className="flex items-center justify-between mb-4">
@@ -472,9 +467,9 @@ export default function PosPage() {
                 <h1 className="text-xl font-bold">
                   {editingInvoiceId
                     ? `${t("editOrder")} #${editingInvoiceId}`
-                    : category === "All"
-                      ? t("products")
-                      : category}
+                    : category
+                      ? (locale === "ar" ? menuCategoryList.find((item) => item.id === category)?.nameAr : category)
+                      : menuGroup ? (locale === "ar" ? groupLabels[menuGroup].ar : groupLabels[menuGroup].en) : t("products")}
                 </h1>
                 <p className="text-xs text-muted mt-1">
                   {loadingOrder
@@ -525,6 +520,7 @@ export default function PosPage() {
                 </button>
               ))}
             </div>
+            {filtered.length === 0 && <div className="py-16 text-center text-sm text-muted">{search.trim() ? (locale === "ar" ? "لا توجد أصناف مطابقة للبحث." : "No items match your search.") : (locale === "ar" ? "لا توجد أصناف في هذا القسم." : "No items in this section.")}</div>}
           </div>
         </section>
         <aside className="hidden min-[900px]:flex w-[370px] xl:w-[410px] shrink-0 bg-surface border-s border-border flex-col">

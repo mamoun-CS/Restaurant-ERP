@@ -7,7 +7,7 @@ import { assertSameOrigin, rateLimit, requestIp } from "@/lib/api";
 import { db } from "@/lib/db";
 import { hashPosSecret } from "@/lib/pos-device-auth";
 
-const schema = z.object({ branchId: z.string().min(1), registerId: z.string().min(1) });
+const schema = z.object({ branchId: z.string().min(1), registerId: z.string().min(1), neverExpires: z.boolean().default(false) });
 
 export async function POST(request: Request) {
   const csrfError = assertSameOrigin(request);
@@ -21,8 +21,8 @@ export async function POST(request: Request) {
   const register = await db.cashRegister.findFirst({ where: { id: parsed.data.registerId, branchId: parsed.data.branchId, active: true } });
   if (!register) return NextResponse.json({ error: "Cash register was not found for this branch." }, { status: 404 });
   const pairingCode = randomBytes(9).toString("base64url").toUpperCase();
-  const expiresAt = new Date(Date.now() + 10 * 60_000);
+  const expiresAt = parsed.data.neverExpires ? null : new Date(Date.now() + 10 * 60_000);
   const row = await db.posDevicePairingCode.create({ data: { codeHash: hashPosSecret(pairingCode), branchId: parsed.data.branchId, registerId: register.id, createdById: user.userId, expiresAt } });
-  await db.auditLog.create({ data: { userId: user.userId, branchId: parsed.data.branchId, action: "POS_PAIRING_CODE_CREATED", entityType: "PosDevicePairingCode", entityId: row.id, metadata: { expiresAt: expiresAt.toISOString(), registerId: register.id } } });
-  return NextResponse.json({ pairingCode, expiresAt: expiresAt.toISOString() }, { status: 201 });
+  await db.auditLog.create({ data: { userId: user.userId, branchId: parsed.data.branchId, action: "POS_PAIRING_CODE_CREATED", entityType: "PosDevicePairingCode", entityId: row.id, metadata: { expiresAt: expiresAt?.toISOString() ?? null, registerId: register.id } } });
+  return NextResponse.json({ pairingCode, expiresAt: expiresAt?.toISOString() ?? null }, { status: 201 });
 }

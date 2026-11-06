@@ -308,6 +308,7 @@ model Category {
   deletedAt    DateTime?
   deletedBy    String?
   sortOrder    Int                @default(0)
+  tags         String[]           @default([])
   products     Product[]
   discounts    DiscountCampaign[] @relation("DiscountCategories")
   invoiceItems InvoiceItem[]
@@ -322,6 +323,7 @@ model Product {
   barcode              String?                @unique
   price                Decimal                @db.Decimal(10, 2)
   currentCost          Decimal                @default(0) @db.Decimal(10, 2)
+  tags                 String[]               @default([])
   imageUrl             String?
   active               Boolean                @default(true)
   deletedAt            DateTime?
@@ -697,7 +699,7 @@ model PosDevicePairingCode {
   device      PosDevice?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   createdById String
   createdBy   User         @relation("PosPairingCreator", fields: [createdById], references: [id])
-  expiresAt   DateTime
+  expiresAt   DateTime?
   consumedAt  DateTime?
   attempts    Int          @default(0)
   createdAt   DateTime     @default(now())

@@ -177,6 +177,7 @@ export const CategoryScalarFieldEnum = {
   deletedAt: 'deletedAt',
   deletedBy: 'deletedBy',
   sortOrder: 'sortOrder',
+  tags: 'tags',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -190,6 +191,7 @@ export const ProductScalarFieldEnum = {
   barcode: 'barcode',
   price: 'price',
   currentCost: 'currentCost',
+  tags: 'tags',
   imageUrl: 'imageUrl',
   active: 'active',
   deletedAt: 'deletedAt',
@@ -355,6 +357,9 @@ export const DiscountCampaignScalarFieldEnum = {
   startsAt: 'startsAt',
   endsAt: 'endsAt',
   active: 'active',
+  couponCode: 'couponCode',
+  maxUses: 'maxUses',
+  usedCount: 'usedCount',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -1059,6 +1064,7 @@ export type ProductPrinterRouteScalarFieldEnum = (typeof ProductPrinterRouteScal
 export const CategoryPrinterRouteScalarFieldEnum = {
   id: 'id',
   categoryId: 'categoryId',
+  branchId: 'branchId',
   printerConfigurationId: 'printerConfigurationId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

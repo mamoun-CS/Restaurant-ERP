@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const codeHash = hashPosSecret(parsed.data.pairingCode.trim().toUpperCase());
   const pair = await db.posDevicePairingCode.findUnique({ where: { codeHash } });
   const now = new Date();
-  if (!pair || pair.consumedAt || pair.expiresAt <= now || pair.attempts >= 8) {
+  if (!pair || pair.consumedAt || (pair.expiresAt && pair.expiresAt <= now) || pair.attempts >= 8) {
     if (pair) await db.posDevicePairingCode.update({ where: { id: pair.id }, data: { attempts: { increment: 1 } } }).catch(() => {});
     return NextResponse.json({ error: "Pairing code is invalid, expired, or already used." }, { status: 401 });
   }
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const refreshSecret = issueDeviceRefreshSecret();
   try {
     const device = await db.$transaction(async (tx) => {
-      const claimed = await tx.posDevicePairingCode.updateMany({ where: { id: pair.id, consumedAt: null, expiresAt: { gt: now }, attempts: { lt: 8 } }, data: { consumedAt: now } });
+      const claimed = await tx.posDevicePairingCode.updateMany({ where: { id: pair.id, consumedAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }], attempts: { lt: 8 } }, data: { consumedAt: now } });
       if (claimed.count !== 1) throw new Error("PAIRING_CODE_ALREADY_USED");
       const created = await tx.posDevice.create({ data: { id: deviceId, name: parsed.data.deviceName, deviceCode: randomUUID(), refreshTokenHash: hashPosSecret(refreshSecret), branchId: pair.branchId, registerId: pair.registerId, appVersion: parsed.data.appVersion } });
       const cashiers = await tx.user.findMany({ where: { branchId: pair.branchId, role: "CASHIER", active: true, deletedAt: null }, select: { id: true } });

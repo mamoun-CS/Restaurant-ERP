@@ -10,6 +10,7 @@ const node_crypto_2 = require("node:crypto");
 const node_crypto_3 = require("node:crypto");
 const node_util_1 = require("node:util");
 const node_fs_1 = require("node:fs");
+const node_path_1 = require("node:path");
 const shared_business_logic_1 = require("@restaurant/shared-business-logic");
 const scrypt = (0, node_util_1.promisify)(node_crypto_3.scrypt);
 class PosDatabase {
@@ -20,13 +21,25 @@ class PosDatabase {
         this.db.pragma("foreign_keys = ON");
         this.db.pragma("busy_timeout = 5000");
         this.db.exec((0, node_fs_1.readFileSync)(migrationPath, "utf8"));
+        const orderConfirmationMigration = (0, node_path_1.join)((0, node_path_1.dirname)(migrationPath), "002-order-confirmation.sql");
+        if (!this.db.prepare("SELECT 1 FROM schema_migrations WHERE version=2").get())
+            this.db.exec((0, node_fs_1.readFileSync)(orderConfirmationMigration, "utf8"));
+        const offlineAccountMigration = (0, node_path_1.join)((0, node_path_1.dirname)(migrationPath), "003-offline-account-type.sql");
+        if (!this.db.prepare("SELECT 1 FROM schema_migrations WHERE version=3").get())
+            this.db.exec((0, node_fs_1.readFileSync)(offlineAccountMigration, "utf8"));
+        const catalogTagsMigration = (0, node_path_1.join)((0, node_path_1.dirname)(migrationPath), "004-catalog-tags.sql");
+        if (!this.db.prepare("SELECT 1 FROM schema_migrations WHERE version=4").get())
+            this.db.exec((0, node_fs_1.readFileSync)(catalogTagsMigration, "utf8"));
     }
     listProducts(search = "") {
         const q = search.trim();
         return this.db.prepare(`SELECT id, sku, barcode, name_en AS nameEn, name_ar AS nameAr,
-      price_minor AS priceMinor, currency_code AS currencyCode FROM products
-      WHERE active=1 AND (?='' OR sku LIKE ? OR barcode LIKE ? OR name_en LIKE ? OR name_ar LIKE ?)
-      ORDER BY CASE WHEN barcode=? OR sku=? THEN 0 ELSE 1 END, name_en LIMIT 100`).all(q, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, q, q);
+      price_minor AS priceMinor, currency_code AS currencyCode,category_id AS categoryId,
+      (SELECT name_en FROM categories WHERE id=products.category_id) AS categoryNameEn,
+      (SELECT name_ar FROM categories WHERE id=products.category_id) AS categoryNameAr,tags_json AS tagsJson FROM products
+      WHERE active=1 AND (?='' OR sku LIKE ? OR barcode LIKE ? OR name_en LIKE ? OR name_ar LIKE ? OR tags_json LIKE ? OR category_id IN (SELECT id FROM categories WHERE name_ar LIKE ? OR name_en LIKE ? OR tags_json LIKE ?))
+      ORDER BY CASE WHEN barcode=? OR sku=? THEN 0 ELSE 1 END, name_en LIMIT 100`).all(q, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, q, q)
+            .map((row) => { const item = row; const { tagsJson, ...product } = item; return { ...product, tags: JSON.parse(tagsJson) }; });
     }
     getMetadata(key) {
         const row = this.db.prepare("SELECT value FROM sync_metadata WHERE key=?").get(key);
@@ -38,20 +51,78 @@ class PosDatabase {
     getPendingCount() {
         return this.db.prepare("SELECT COUNT(*) AS count FROM sync_queue WHERE status IN ('pending','processing','failed')").get().count;
     }
+    listSyncIssues() {
+        return this.db.prepare(`SELECT r.receipt_number AS receiptNumber,q.status,q.attempt_count AS attemptCount,
+      q.next_attempt_at AS nextAttemptAt,q.error_message AS errorMessage,o.created_at AS createdAt,o.total_minor AS totalMinor,o.currency_code AS currencyCode
+      FROM sync_queue q JOIN orders o ON o.id=q.entity_id JOIN receipts r ON r.order_id=o.id
+      WHERE q.status IN ('pending','processing','failed') ORDER BY CASE q.status WHEN 'failed' THEN 0 ELSE 1 END,o.created_at LIMIT 20`)
+            .all();
+    }
+    retryFailedSync() {
+        const now = new Date().toISOString();
+        const retry = this.db.transaction(() => {
+            const failed = this.db.prepare("SELECT entity_id FROM sync_queue WHERE status='failed'").all();
+            this.db.prepare("UPDATE sync_queue SET status='pending',next_attempt_at=?,error_message=NULL,updated_at=? WHERE status='failed'").run(now, now);
+            for (const row of failed)
+                this.db.prepare("UPDATE orders SET sync_status='pending' WHERE id=?").run(row.entity_id);
+            this.setMetadata("last_sync_error", "");
+        });
+        retry.immediate();
+    }
     getCashierCount() {
         return this.db.prepare("SELECT COUNT(*) AS count FROM cashiers WHERE active=1 AND offline_expires_at > ?").get(new Date().toISOString()).count;
+    }
+    getOpenCashSession(cashierId) {
+        const session = this.db.prepare("SELECT id,opened_at AS openedAt,opening_minor AS openingMinor,register_cloud_id AS registerCloudId FROM cash_register_sessions WHERE cashier_id=? AND status='OPEN' ORDER BY opened_at DESC LIMIT 1").get(cashierId);
+        if (!session)
+            return null;
+        const sales = this.db.prepare("SELECT COALESCE(SUM(total_minor),0) AS total FROM orders WHERE shift_id=? AND status='COMPLETED'").get(session.id);
+        return { ...session, expectedMinor: session.openingMinor + sales.total };
+    }
+    listRecentOrders() {
+        return this.db.prepare(`SELECT o.id,o.created_at AS createdAt,o.total_minor AS totalMinor,r.receipt_number AS receiptNumber,
+      c.display_name AS cashierName,o.order_type AS orderType,o.customer_name AS customerName,o.sync_status AS syncStatus
+      FROM orders o JOIN receipts r ON r.order_id=o.id JOIN cashiers c ON c.id=o.cashier_id
+      ORDER BY o.created_at DESC LIMIT 50`).all();
+    }
+    openCashSession(cashierId, openingMinor) {
+        if (!Number.isSafeInteger(openingMinor) || openingMinor < 0)
+            throw new Error("Enter a valid opening cash amount.");
+        const transaction = this.db.transaction(() => {
+            if (this.db.prepare("SELECT 1 FROM cash_register_sessions WHERE cashier_id=? AND status='OPEN'").get(cashierId))
+                throw new Error("This cashier already has an open cash shift.");
+            const id = (0, node_crypto_1.randomUUID)(), openedAt = new Date().toISOString(), registerCloudId = this.getMetadata("register_id");
+            this.db.prepare("INSERT INTO cash_register_sessions(id,register_cloud_id,cashier_id,opened_at,opening_minor,status) VALUES(?,?,?,?,?,'OPEN')").run(id, registerCloudId, cashierId, openedAt, openingMinor);
+            this.db.prepare("INSERT INTO audit_logs(id,actor_id,action,entity_type,entity_id,details_json,created_at) VALUES(?,?,'CASH_SHIFT_OPENED','cash_register_session',?,?,?)").run((0, node_crypto_1.randomUUID)(), cashierId, id, JSON.stringify({ openingMinor, registerCloudId }), openedAt);
+            return { id, openedAt, openingMinor, expectedMinor: openingMinor, registerCloudId };
+        });
+        return transaction.immediate();
+    }
+    closeCashSession(cashierId, closingMinor) {
+        if (!Number.isSafeInteger(closingMinor) || closingMinor < 0)
+            throw new Error("Enter a valid counted cash amount.");
+        const transaction = this.db.transaction(() => {
+            const session = this.getOpenCashSession(cashierId);
+            if (!session)
+                throw new Error("There is no open cash shift for this cashier.");
+            const closedAt = new Date().toISOString(), differenceMinor = closingMinor - session.expectedMinor;
+            this.db.prepare("UPDATE cash_register_sessions SET closed_at=?,closing_minor=?,status='CLOSED' WHERE id=? AND status='OPEN'").run(closedAt, closingMinor, session.id);
+            this.db.prepare("INSERT INTO audit_logs(id,actor_id,action,entity_type,entity_id,details_json,created_at) VALUES(?,?,'CASH_SHIFT_CLOSED','cash_register_session',?,?,?)").run((0, node_crypto_1.randomUUID)(), cashierId, session.id, JSON.stringify({ openingMinor: session.openingMinor, expectedMinor: session.expectedMinor, closingMinor, differenceMinor }), closedAt);
+            return { id: session.id, closedAt, openingMinor: session.openingMinor, expectedMinor: session.expectedMinor, closingMinor, differenceMinor };
+        });
+        return transaction.immediate();
     }
     listCoupons() {
         return this.db.prepare("SELECT code,type,value,starts_at AS startsAt,ends_at AS endsAt,active,max_uses AS maxUses,used_count AS usedCount FROM discount_coupons").all();
     }
     getCatalogHash() {
-        const categories = this.db.prepare(`SELECT id,cloud_id AS cloudId,name_en AS nameEn,name_ar AS nameAr,sort_order AS sortOrder,active,server_version AS serverVersion FROM categories ORDER BY id`).all();
-        const normalizedCategories = categories.map((category) => ({ ...category, active: Boolean(category.active) }));
-        const products = this.db.prepare(`SELECT id,cloud_id AS cloudId,sku,barcode,name_en AS nameEn,name_ar AS nameAr,category_id AS categoryId,price_minor AS priceMinor,currency_code AS currencyCode,active,server_version AS serverVersion,sizes_json,addons_json FROM products ORDER BY id`).all();
+        const categories = this.db.prepare(`SELECT id,cloud_id AS cloudId,name_en AS nameEn,name_ar AS nameAr,sort_order AS sortOrder,active,server_version AS serverVersion,tags_json AS tagsJson FROM categories ORDER BY id`).all();
+        const normalizedCategories = categories.map(({ tagsJson, ...category }) => ({ ...category, active: Boolean(category.active), tags: JSON.parse(tagsJson) }));
+        const products = this.db.prepare(`SELECT id,cloud_id AS cloudId,sku,barcode,name_en AS nameEn,name_ar AS nameAr,category_id AS categoryId,price_minor AS priceMinor,currency_code AS currencyCode,active,server_version AS serverVersion,sizes_json,addons_json,tags_json AS tagsJson FROM products ORDER BY id`).all();
         const normalizedProducts = products.map((product) => ({
             id: product.id, cloudId: product.cloudId, sku: product.sku, barcode: product.barcode, nameEn: product.nameEn, nameAr: product.nameAr,
             categoryId: product.categoryId, priceMinor: product.priceMinor, currencyCode: product.currencyCode, active: Boolean(product.active),
-            serverVersion: product.serverVersion, sizes: JSON.parse(product.sizes_json), addons: JSON.parse(product.addons_json),
+            serverVersion: product.serverVersion, sizes: JSON.parse(product.sizes_json), addons: JSON.parse(product.addons_json), tags: JSON.parse(product.tagsJson),
         }));
         return (0, node_crypto_2.createHash)("sha256").update(JSON.stringify({ categories: normalizedCategories, products: normalizedProducts })).digest("hex");
     }
@@ -61,15 +132,15 @@ class PosDatabase {
         const apply = this.db.transaction(() => {
             this.db.prepare("DELETE FROM products").run();
             this.db.prepare("DELETE FROM categories").run();
-            const category = this.db.prepare(`INSERT INTO categories(id,cloud_id,name_en,name_ar,sort_order,active,server_version,updated_at)
-        VALUES(?,?,?,?,?,?,?,?)`);
+            const category = this.db.prepare(`INSERT INTO categories(id,cloud_id,name_en,name_ar,tags_json,sort_order,active,server_version,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?)`);
             for (const row of snapshot.categories)
-                category.run(row.id, row.cloudId, row.nameEn, row.nameAr, row.sortOrder, row.active ? 1 : 0, row.serverVersion, new Date(row.serverVersion).toISOString());
-            const product = this.db.prepare(`INSERT INTO products(id,cloud_id,sku,barcode,name_en,name_ar,category_id,price_minor,currency_code,sizes_json,addons_json,active,server_version,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+                category.run(row.id, row.cloudId, row.nameEn, row.nameAr, JSON.stringify(row.tags ?? []), row.sortOrder, row.active ? 1 : 0, row.serverVersion, new Date(row.serverVersion).toISOString());
+            const product = this.db.prepare(`INSERT INTO products(id,cloud_id,sku,barcode,name_en,name_ar,category_id,tags_json,price_minor,currency_code,sizes_json,addons_json,active,server_version,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
             for (const row of snapshot.products)
-                product.run(row.id, row.cloudId, row.sku, row.barcode, row.nameEn, row.nameAr, row.categoryId, row.priceMinor, row.currencyCode, JSON.stringify(row.sizes), JSON.stringify(row.addons), row.active ? 1 : 0, row.serverVersion, new Date(row.serverVersion).toISOString());
-            const provisionedCashiers = snapshot.cashiers.filter((cashier) => cashier.credentialHash && cashier.credentialSalt && cashier.offlineExpiresAt);
+                product.run(row.id, row.cloudId, row.sku, row.barcode, row.nameEn, row.nameAr, row.categoryId, JSON.stringify(row.tags ?? []), row.priceMinor, row.currencyCode, JSON.stringify(row.sizes), JSON.stringify(row.addons), row.active ? 1 : 0, row.serverVersion, new Date(row.serverVersion).toISOString());
+            const provisionedCashiers = snapshot.cashiers.filter((cashier) => cashier.credentialHash && cashier.credentialSalt && cashier.offlinePolicyToken);
             const keepIds = provisionedCashiers.map((cashier) => cashier.id);
             if (keepIds.length) {
                 const placeholders = keepIds.map(() => "?").join(",");
@@ -77,10 +148,10 @@ class PosDatabase {
             }
             else
                 this.db.prepare("DELETE FROM cashiers").run();
-            const cashier = this.db.prepare(`INSERT INTO cashiers(id,cloud_id,username,display_name,credential_hash,credential_salt,verifier_kind,policy_version,offline_expires_at,can_discount,max_discount_percent,max_discount_minor,supervisor,policy_token,active)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,1) ON CONFLICT(id) DO UPDATE SET cloud_id=excluded.cloud_id,username=excluded.username,display_name=excluded.display_name,credential_hash=excluded.credential_hash,credential_salt=excluded.credential_salt,verifier_kind=excluded.verifier_kind,policy_version=excluded.policy_version,offline_expires_at=excluded.offline_expires_at,can_discount=excluded.can_discount,max_discount_percent=excluded.max_discount_percent,max_discount_minor=excluded.max_discount_minor,supervisor=excluded.supervisor,policy_token=excluded.policy_token,active=1`);
+            const cashier = this.db.prepare(`INSERT INTO cashiers(id,cloud_id,username,display_name,credential_hash,credential_salt,verifier_kind,policy_version,offline_expires_at,can_discount,max_discount_percent,max_discount_minor,supervisor,policy_token,active,account_type)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,?) ON CONFLICT(id) DO UPDATE SET cloud_id=excluded.cloud_id,username=excluded.username,display_name=excluded.display_name,credential_hash=excluded.credential_hash,credential_salt=excluded.credential_salt,verifier_kind=excluded.verifier_kind,policy_version=excluded.policy_version,offline_expires_at=excluded.offline_expires_at,can_discount=excluded.can_discount,max_discount_percent=excluded.max_discount_percent,max_discount_minor=excluded.max_discount_minor,supervisor=excluded.supervisor,policy_token=excluded.policy_token,active=1,account_type=excluded.account_type`);
             for (const row of provisionedCashiers) {
-                cashier.run(row.id, row.cloudId, row.username.toLowerCase(), row.displayName, row.credentialHash, row.credentialSalt, row.verifierKind, row.policyVersion, row.offlineExpiresAt, row.canDiscount ? 1 : 0, row.maxDiscountPercent, row.maxDiscountMinor, row.supervisor ? 1 : 0, row.offlinePolicyToken);
+                cashier.run(row.id, row.cloudId, row.username.toLowerCase(), row.displayName, row.credentialHash, row.credentialSalt, row.verifierKind, row.policyVersion, row.offlineExpiresAt ?? "9999-12-31T23:59:59.999Z", row.canDiscount ? 1 : 0, row.maxDiscountPercent, row.maxDiscountMinor, row.supervisor || row.accountType === "ADMIN" ? 1 : 0, row.offlinePolicyToken, row.accountType ?? "CASHIER");
             }
             this.db.prepare("UPDATE discount_coupons SET active=0").run();
             const coupon = this.db.prepare(`INSERT INTO discount_coupons(code,type,value,starts_at,ends_at,active,max_uses,used_count)
@@ -151,10 +222,10 @@ class PosDatabase {
         fail.immediate();
     }
     async authenticate(username, pin, supervisorOnly = false) {
-        const cashier = this.db.prepare(`SELECT id,display_name,credential_hash,credential_salt,verifier_kind,offline_expires_at,policy_token,
+        const cashier = this.db.prepare(`SELECT id,display_name,account_type,credential_hash,credential_salt,verifier_kind,offline_expires_at,policy_token,
       can_discount,max_discount_percent,max_discount_minor,supervisor,failed_attempts,locked_until,active FROM cashiers WHERE username=?`).get(username.trim().toLowerCase());
         if (!cashier || !cashier.active || Date.parse(cashier.offline_expires_at) <= Date.now() ||
-            (supervisorOnly && !cashier.supervisor) || (cashier.locked_until && Date.parse(cashier.locked_until) > Date.now()))
+            (supervisorOnly && cashier.account_type !== "ADMIN" && !cashier.supervisor) || (!supervisorOnly && cashier.account_type === "ADMIN") || (cashier.locked_until && Date.parse(cashier.locked_until) > Date.now()))
             return null;
         if (cashier.verifier_kind !== "scrypt-v1")
             return null;
@@ -163,12 +234,26 @@ class PosDatabase {
         const valid = expected.length === candidate.length && (0, node_crypto_3.timingSafeEqual)(candidate, expected);
         if (valid) {
             this.db.prepare("UPDATE cashiers SET failed_attempts=0,locked_until=NULL WHERE id=?").run(cashier.id);
-            return { id: cashier.id, name: cashier.display_name, policyToken: cashier.policy_token, canDiscount: Boolean(cashier.can_discount), maxDiscountPercent: cashier.max_discount_percent, maxDiscountMinor: cashier.max_discount_minor, supervisor: Boolean(cashier.supervisor) };
+            return { id: cashier.id, name: cashier.display_name, accountType: cashier.account_type, policyToken: cashier.policy_token, canDiscount: Boolean(cashier.can_discount), maxDiscountPercent: cashier.max_discount_percent, maxDiscountMinor: cashier.max_discount_minor, supervisor: Boolean(cashier.supervisor) };
         }
         const attempts = cashier.failed_attempts + 1;
         const lockedUntil = attempts >= 5 ? new Date(Date.now() + 5 * 60_000).toISOString() : null;
         this.db.prepare("UPDATE cashiers SET failed_attempts=?,locked_until=? WHERE id=?").run(attempts, lockedUntil, cashier.id);
         return null;
+    }
+    getOfflineAdminCredentialState(username) {
+        const row = this.db.prepare("SELECT account_type,supervisor,active,offline_expires_at,locked_until FROM cashiers WHERE username=?").get(username.trim().toLowerCase());
+        if (!row)
+            return "missing";
+        if (!row.active)
+            return "inactive";
+        if (row.account_type !== "ADMIN" && !row.supervisor)
+            return "not-admin";
+        if (!row.offline_expires_at || Date.parse(row.offline_expires_at) <= Date.now())
+            return "expired";
+        if (row.locked_until && Date.parse(row.locked_until) > Date.now())
+            return "locked";
+        return "ready";
     }
     checkout(input, cashierId) {
         if (!input.items.length)
@@ -181,6 +266,7 @@ class PosDatabase {
             if (prior)
                 return { orderId: prior.id, receiptNumber: prior.receiptNumber, totalMinor: prior.totalMinor };
             const orderId = (0, node_crypto_1.randomUUID)();
+            const openShift = this.db.prepare("SELECT id FROM cash_register_sessions WHERE cashier_id=? AND status='OPEN' ORDER BY opened_at DESC LIMIT 1").get(cashierId);
             const items = input.items.map((line) => {
                 const product = db.prepare("SELECT id, cloud_id, name_en, price_minor, active FROM products WHERE id=?").get(line.productId);
                 if (!product || !product.active)
@@ -230,8 +316,8 @@ class PosDatabase {
             if (input.payments.some((payment) => payment.method !== "CASH"))
                 throw new Error("Only cash payments are enabled until payment terminals are configured.");
             db.prepare(`INSERT INTO orders(id,idempotency_key,device_id,cashier_id,shift_id,status,currency_code,
-        subtotal_minor,discount_minor,tax_minor,total_minor,created_at) VALUES(?,?,?,?,?,'COMPLETED',?,?,?,?,?,?)`)
-                .run(orderId, input.idempotencyKey, input.deviceId, cashierId, input.shiftId ?? null, input.currencyCode, subtotalMinor, discountMinor, taxMinor, totalMinor, now);
+        subtotal_minor,discount_minor,tax_minor,total_minor,created_at,order_type,customer_name,customer_phone,customer_address,customer_notes) VALUES(?,?,?,?,?,'COMPLETED',?,?,?,?,?,?,?,?,?,?,?)`)
+                .run(orderId, input.idempotencyKey, input.deviceId, cashierId, input.shiftId ?? openShift?.id ?? null, input.currencyCode, subtotalMinor, discountMinor, taxMinor, totalMinor, now, input.orderType ?? "PICKUP", input.customerName?.trim() || null, input.customerPhone?.trim() || null, input.customerAddress?.trim() || null, input.customerNotes?.trim() || null);
             const addItem = db.prepare(`INSERT INTO order_items(id,order_id,product_id,product_cloud_id,product_name_snapshot,
         quantity,unit_price_minor,line_total_minor,options_json) VALUES(?,?,?,?,?,?,?,?,?)`);
             const addMovement = db.prepare(`INSERT INTO inventory_movements(id,order_id,product_id,quantity_delta,source,created_at)
@@ -253,6 +339,7 @@ class PosDatabase {
             db.prepare("INSERT INTO receipts(id,order_id,receipt_number,updated_at) VALUES(?,?,?,?)").run((0, node_crypto_1.randomUUID)(), orderId, receiptNumber, now);
             const payload = JSON.stringify({
                 id: orderId, idempotencyKey: input.idempotencyKey, cashierId, createdAt: now,
+                orderType: input.orderType ?? "PICKUP", customerName: input.customerName?.trim() || undefined, customerPhone: input.customerPhone?.trim() || undefined, customerAddress: input.customerAddress?.trim() || undefined, customerNotes: input.customerNotes?.trim() || undefined,
                 currencyCode: input.currencyCode, subtotalMinor, discountMinor, taxMinor, totalMinor,
                 items: items.map((item) => ({ productId: item.product.cloud_id || item.product.id, productName: item.product.name_en, quantity: item.quantity, unitPriceMinor: item.unitPriceMinor, options: item.options ?? [] })),
                 payments: input.payments, discountReason: input.discountReason, couponCode: input.couponCode?.trim().toUpperCase(), cashierPolicyToken: cashier.policy_token,

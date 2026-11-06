@@ -15,8 +15,10 @@ if (electron_1.app.isPackaged && process.env.RESTAURANT_POS_TEST_USER_DATA) {
 }
 let database;
 let windowRef;
+let onlineAdminWindow = null;
 let localDeviceId = "";
 let activeCashier = null;
+let activeAdminSession = null;
 let syncRunning = false;
 let printAgentProcess = null;
 let cachedAccessToken = null;
@@ -36,6 +38,14 @@ function requireCashier() {
     activeCashier.expiresAt = Date.now() + 15 * 60_000;
     return activeCashier;
 }
+function requireAdminSession() {
+    if (!activeAdminSession || activeAdminSession.expiresAt <= Date.now()) {
+        activeAdminSession = null;
+        throw new Error("Admin session expired. Sign in again.");
+    }
+    activeAdminSession.expiresAt = Date.now() + 5 * 60_000;
+    return activeAdminSession;
+}
 function validateCheckout(value) {
     if (!value || typeof value !== "object")
         throw new Error("Invalid checkout request.");
@@ -47,6 +57,13 @@ function validateCheckout(value) {
         throw new Error("Invalid idempotency key.");
     if (!Array.isArray(input.items) || input.items.length > 200 || !Array.isArray(input.payments) || input.payments.length > 10)
         throw new Error("Invalid checkout lines or payments.");
+    if (input.orderType !== undefined && !['DINE_IN', 'TAKEAWAY', 'PICKUP', 'DELIVERY'].includes(input.orderType))
+        throw new Error("Invalid order type.");
+    for (const value of [input.customerName, input.customerPhone, input.customerAddress, input.customerNotes])
+        if (value !== undefined && typeof value !== "string")
+            throw new Error("Invalid customer or order details.");
+    if ((input.customerName?.length ?? 0) > 120 || (input.customerPhone?.length ?? 0) > 40 || (input.customerAddress?.length ?? 0) > 300 || (input.customerNotes?.length ?? 0) > 1000)
+        throw new Error("Customer or order details are too long.");
     if (!/^[A-Z]{3}$/.test(input.currencyCode))
         throw new Error("Invalid currency.");
     if (!Number.isSafeInteger(input.discountMinor ?? 0) || (input.discountMinor ?? 0) < 0)
@@ -110,6 +127,15 @@ function stopBundledPrintAgent() {
 function getConfiguredPrinter() {
     return database.getMetadata("receipt_printer_name");
 }
+function getLocationName(key) {
+    try {
+        const value = JSON.parse(database.getMetadata(key) ?? "null");
+        return typeof value?.name === "string" ? value.name : null;
+    }
+    catch {
+        return null;
+    }
+}
 function printHtml(html, deviceName) {
     return new Promise((resolve, reject) => {
         const printWindow = new electron_1.BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });
@@ -143,8 +169,18 @@ async function getAccessToken(baseUrl, refreshSecret, force = false) {
 }
 async function cloudGetBootstrap(baseUrl, accessToken) {
     const response = await fetch(new URL("/api/v1/pos/bootstrap", baseUrl), { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(15_000) });
-    if (!response.ok)
-        throw new Error(`Catalog refresh failed (${response.status}).`);
+    if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        let detail = "";
+        try {
+            const parsed = JSON.parse(body);
+            detail = typeof parsed.error === "string" ? parsed.error : typeof parsed.message === "string" ? parsed.message : "";
+        }
+        catch {
+            detail = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+        }
+        throw new Error(`Catalog refresh failed (${response.status})${detail ? `: ${detail}` : "."}`);
+    }
     const snapshot = await response.json();
     database.applyBootstrap(snapshot);
     const localCatalogHash = database.getCatalogHash();
@@ -154,7 +190,7 @@ async function cloudGetBootstrap(baseUrl, accessToken) {
     database.setMetadata("catalog_verified_at", snapshot.serverTime);
     database.setMetadata("last_cloud_sync", new Date().toISOString());
 }
-async function runSyncCycle() {
+async function runSyncCycle(forceBootstrap = false) {
     if (syncRunning)
         return;
     let config;
@@ -172,7 +208,7 @@ async function runSyncCycle() {
         let accessToken = await getAccessToken(config.baseUrl, config.refreshSecret);
         const lastCatalogSync = database.getMetadata("last_catalog_sync");
         const catalogOutOfDate = !lastCatalogSync || Date.now() - Date.parse(lastCatalogSync) > 5 * 60_000;
-        if (catalogOutOfDate || database.getMetadata("catalog_matches_cloud") === "false") {
+        if (forceBootstrap || catalogOutOfDate || database.getMetadata("catalog_matches_cloud") === "false") {
             try {
                 await cloudGetBootstrap(config.baseUrl, accessToken);
             }
@@ -213,7 +249,16 @@ async function runSyncCycle() {
                 throw error;
             }
             if (!response.ok) {
-                const text = `Cloud sync returned ${response.status}.`;
+                const responseBody = await response.text().catch(() => "");
+                let detail = "";
+                try {
+                    const parsed = JSON.parse(responseBody);
+                    detail = typeof parsed.error === "string" ? parsed.error : typeof parsed.message === "string" ? parsed.message : "";
+                }
+                catch {
+                    detail = responseBody.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+                }
+                const text = `Cloud sync returned ${response.status}${detail ? `: ${detail}` : "."}`;
                 const permanent = response.status >= 400 && response.status < 500 && ![401, 408, 429].includes(response.status);
                 for (const row of batch)
                     database.markSyncFailure(row.id, text, permanent, row.attempts);
@@ -233,7 +278,8 @@ async function runSyncCycle() {
                     database.markSyncFailure(row.id, ack?.error ?? "The server did not acknowledge this sale.", ack?.permanent ?? false, row.attempts);
             }
         }
-        database.setMetadata("last_sync_error", "");
+        const failedSale = database.listSyncIssues().find((issue) => issue.status === "failed");
+        database.setMetadata("last_sync_error", failedSale?.errorMessage ?? "");
         database.setMetadata("last_cloud_sync", new Date().toISOString());
     }
     catch (error) {
@@ -261,6 +307,7 @@ function validateCloudUrl(raw) {
 function createWindow() {
     windowRef = new electron_1.BrowserWindow({
         width: 1440, height: 920, minWidth: 1000, minHeight: 700,
+        ...(process.platform === "win32" ? { icon: (0, node_path_1.join)(electron_1.app.getAppPath(), "assets", "brand-icon.ico") } : {}),
         webPreferences: { preload: (0, node_path_1.join)(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
     });
     windowRef.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -304,6 +351,64 @@ electron_1.app.whenReady().then(() => {
         return { name: user.name, expiresAt: activeCashier.expiresAt, canDiscount: user.canDiscount, maxDiscountPercent: user.maxDiscountPercent, maxDiscountMinor: user.maxDiscountMinor, supervisor: user.supervisor };
     });
     electron_1.ipcMain.handle("auth:logout", (event) => { assertTrustedSender(event); activeCashier = null; return true; });
+    electron_1.ipcMain.handle("admin:verify", async (event, username, pin) => {
+        assertTrustedSender(event);
+        if (typeof username !== "string" || typeof pin !== "string")
+            throw new Error("Enter the supervisor username and PIN.");
+        const state = database.getOfflineAdminCredentialState(username);
+        if (state === "missing")
+            throw new Error("This admin account is not stored on this POS yet. In Online ERP → POS Devices, assign the admin to this terminal and set an offline PIN, then sync admin access here.");
+        if (state === "inactive")
+            throw new Error("This admin account is inactive. Activate it in Online ERP, then sync this terminal.");
+        if (state === "not-admin")
+            throw new Error("This account is not an Admin or supervisor account. Use an Admin account with an offline PIN.");
+        if (state === "expired")
+            throw new Error("The offline PIN has expired. Renew its offline validity in Online ERP → POS Devices, then sync this terminal.");
+        if (state === "locked")
+            throw new Error("This account is temporarily locked after several incorrect PIN attempts. Wait five minutes before trying again.");
+        const supervisor = await database.authenticate(username, pin, true);
+        if (!supervisor)
+            throw new Error("The PIN does not match the offline PIN saved on this device. If you changed it in Online ERP, sync admin access before trying again.");
+        activeAdminSession = { id: supervisor.id, name: supervisor.name, expiresAt: Date.now() + 5 * 60_000 };
+        return { name: supervisor.name, expiresAt: activeAdminSession.expiresAt };
+    });
+    electron_1.ipcMain.handle("admin:credential-state", (event, username) => {
+        assertTrustedSender(event);
+        if (typeof username !== "string" || username.length > 254)
+            throw new Error("Enter a valid admin username.");
+        return database.getOfflineAdminCredentialState(username);
+    });
+    electron_1.ipcMain.handle("admin:logout", (event) => { assertTrustedSender(event); activeAdminSession = null; return true; });
+    electron_1.ipcMain.handle("admin:recent-orders", (event) => { assertTrustedSender(event); if (!activeAdminSession || activeAdminSession.expiresAt <= Date.now()) {
+        activeAdminSession = null;
+        throw new Error("Supervisor access expired. Sign in again.");
+    } activeAdminSession.expiresAt = Date.now() + 5 * 60_000; return database.listRecentOrders(); });
+    electron_1.ipcMain.handle("admin:open-online", (event) => {
+        assertTrustedSender(event);
+        const config = getCloudConfig();
+        if (!config)
+            throw new Error("Connect this POS to the Online ERP first.");
+        if (onlineAdminWindow && !onlineAdminWindow.isDestroyed()) {
+            onlineAdminWindow.focus();
+            return true;
+        }
+        const origin = new URL(config.baseUrl).origin;
+        onlineAdminWindow = new electron_1.BrowserWindow({ width: 1440, height: 940, minWidth: 1000, minHeight: 700, parent: windowRef, webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, partition: "persist:online-admin" } });
+        onlineAdminWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+        const allowErpNavigation = (navigation, url) => { try {
+            if (new URL(url).origin !== origin)
+                navigation.preventDefault();
+        }
+        catch {
+            navigation.preventDefault();
+        } };
+        onlineAdminWindow.webContents.on("will-navigate", allowErpNavigation);
+        onlineAdminWindow.webContents.on("will-redirect", allowErpNavigation);
+        onlineAdminWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+        onlineAdminWindow.once("closed", () => { onlineAdminWindow = null; });
+        void onlineAdminWindow.loadURL(new URL("/admin", config.baseUrl).toString());
+        return true;
+    });
     electron_1.ipcMain.handle("device:enroll", async (event, rawUrl, pairingCode, deviceName) => {
         assertTrustedSender(event);
         const baseUrl = validateCloudUrl(rawUrl);
@@ -324,7 +429,88 @@ electron_1.app.whenReady().then(() => {
         void runSyncCycle();
         return { enrolled: true, catalogCount: database.listProducts().length, cashierCount: database.getCashierCount() };
     });
-    electron_1.ipcMain.handle("sync:trigger", async (event) => { assertTrustedSender(event); await runSyncCycle(); return true; });
+    electron_1.ipcMain.handle("sync:trigger", async (event) => {
+        assertTrustedSender(event);
+        if (syncRunning)
+            throw new Error("Synchronization is already running. Wait a moment, then sync admin access again.");
+        // A manual sync is also the explicit way to provision newly assigned offline
+        // accounts and PIN verifiers. Do not let the five-minute catalog throttle
+        // make a successful sync appear to refresh accounts when it did not.
+        database.retryFailedSync();
+        await runSyncCycle(true);
+        const syncError = database.getMetadata("last_sync_error");
+        if (syncError)
+            throw new Error(syncError);
+        return true;
+    });
+    electron_1.ipcMain.handle("cash:open", (event, amount) => { assertTrustedSender(event); const cashier = requireCashier(); if (typeof amount !== "number")
+        throw new Error("Enter a valid opening cash amount."); return database.openCashSession(cashier.id, Math.round(amount * 100)); });
+    electron_1.ipcMain.handle("cash:close", (event, amount) => { assertTrustedSender(event); const cashier = requireCashier(); if (typeof amount !== "number")
+        throw new Error("Enter a valid counted cash amount."); return database.closeCashSession(cashier.id, Math.round(amount * 100)); });
+    electron_1.ipcMain.handle("device:set-server", async (event, rawUrl) => {
+        assertTrustedSender(event);
+        requireAdminSession();
+        const config = getCloudConfig();
+        if (!config)
+            throw new Error("This terminal is not paired. Pair it from the admin system first.");
+        const baseUrl = validateCloudUrl(rawUrl);
+        if (syncRunning)
+            throw new Error("Synchronization is running. Try changing the server address again in a moment.");
+        try {
+            const accessToken = await getAccessToken(baseUrl, config.refreshSecret, true);
+            await cloudGetBootstrap(baseUrl, accessToken);
+            database.setMetadata("cloud_url", baseUrl);
+            database.setMetadata("last_sync_error", "");
+            cachedAccessToken = { token: accessToken, expiresAt: Date.now() + 14 * 60_000 };
+            await runSyncCycle(true);
+            return { connected: !database.getMetadata("last_sync_error"), serverUrl: baseUrl };
+        }
+        catch (error) {
+            cachedAccessToken = null;
+            throw error;
+        }
+    });
+    electron_1.ipcMain.handle("app:diagnostics", async (event) => {
+        assertTrustedSender(event);
+        const checks = [];
+        checks.push({ id: "database", status: "ok", detail: "Local SQLite database is open. Offline checkout is available.", action: null });
+        let config = null;
+        try {
+            config = getCloudConfig();
+        }
+        catch (error) {
+            checks.push({ id: "credentials", status: "error", detail: error instanceof Error ? error.message : "Could not read secure device credentials.", action: "pair" });
+        }
+        if (!config)
+            checks.push({ id: "pairing", status: "error", detail: "This device is not paired with a cloud server.", action: "pair" });
+        else {
+            try {
+                await getAccessToken(config.baseUrl, config.refreshSecret, true);
+                checks.push({ id: "connection", status: "ok", detail: `Cloud connection is working (${config.baseUrl}).`, action: null });
+            }
+            catch (error) {
+                checks.push({ id: "connection", status: "error", detail: error instanceof Error ? error.message : "Unable to connect. Check the server address and Internet connection.", action: "connection" });
+            }
+        }
+        const catalogCount = database.listProducts().length;
+        checks.push({ id: "catalog", status: catalogCount ? "ok" : "warning", detail: catalogCount ? `${catalogCount} products are available locally.` : "Local catalog is empty. Connect to the server and download products.", action: catalogCount ? null : (config ? "catalog" : "pair") });
+        const cashierCount = database.getCashierCount();
+        checks.push({ id: "cashiers", status: cashierCount ? "ok" : "warning", detail: cashierCount ? `${cashierCount} offline cashier account(s) are ready.` : "No offline cashier accounts are available on this device.", action: config ? "sync" : "pair" });
+        const pendingCount = database.getPendingCount();
+        const syncError = database.getMetadata("last_sync_error");
+        const syncIssues = database.listSyncIssues();
+        checks.push({ id: "sync", status: syncError ? "warning" : "ok", detail: syncError ? `${pendingCount} sale(s) waiting. Last sync error: ${syncError}` : `${pendingCount} sale(s) waiting to sync.`, action: pendingCount || syncError ? "sync" : null, issues: syncIssues });
+        try {
+            const printers = await (windowRef?.webContents.getPrintersAsync() ?? Promise.resolve([]));
+            const selected = getConfiguredPrinter();
+            const selectedAvailable = Boolean(selected && printers.some((printer) => printer.name === selected));
+            checks.push({ id: "printer", status: selectedAvailable ? "ok" : "warning", detail: selectedAvailable ? `Receipt printer is ready: ${selected}.` : selected ? `Saved printer “${selected}” is unavailable. Choose a new printer or use the Windows dialog.` : printers.length ? "No default printer is selected. You can choose one or ask Windows each time." : "No Windows printer is installed. Add one in Windows Settings; the cashier still works and can save invoices as PDF.", action: "printer" });
+        }
+        catch (error) {
+            checks.push({ id: "printer", status: "warning", detail: error instanceof Error ? error.message : "Could not read Windows printer list.", action: "printer" });
+        }
+        return checks;
+    });
     electron_1.ipcMain.handle("catalog:refresh", async (event) => { assertTrustedSender(event); const config = getCloudConfig(); if (!config)
         throw new Error("Pair this terminal before refreshing the cloud catalog."); const accessToken = await getAccessToken(config.baseUrl, config.refreshSecret); await cloudGetBootstrap(config.baseUrl, accessToken); return { catalogCount: database.listProducts().length }; });
     electron_1.ipcMain.handle("printer:list", async (event) => { assertTrustedSender(event); return (await windowRef?.webContents.getPrintersAsync() ?? []).map((printer) => ({ name: printer.name, displayName: printer.displayName, description: printer.description })); });
@@ -383,7 +569,8 @@ electron_1.app.whenReady().then(() => {
         const cloudCatalogHash = database.getMetadata("cloud_catalog_hash");
         const localCatalogHash = database.getCatalogHash();
         const matchValue = database.getMetadata("catalog_matches_cloud");
-        return ({ databaseReady: true, catalogCount: database.listProducts().length,
+        const openCashSession = activeCashier ? database.getOpenCashSession(activeCashier.id) : null;
+        return ({ databaseReady: true, catalogCount: database.listProducts().length, cloudUrl: database.getMetadata("cloud_url"), deviceId: database.getMetadata("device_id"), branchName: getLocationName("branch"), registerName: getLocationName("register"), openCashSession,
             cashierName: activeCashier?.expiresAt && activeCashier.expiresAt > Date.now() ? activeCashier.name : null,
             pendingCount: database.getPendingCount(), cashierCount: database.getCashierCount(), deviceEnrolled, selectedPrinterName: database.getMetadata("receipt_printer_name") || null,
             lastSyncAt: database.getMetadata("last_cloud_sync"), lastSyncError: database.getMetadata("last_sync_error"), catalogHash: localCatalogHash, cloudCatalogHash, catalogMatchesCloud: matchValue === null ? null : localCatalogHash === cloudCatalogHash && matchValue === "true", catalogSyncedAt: database.getMetadata("catalog_verified_at"), coupons: database.listCoupons() });

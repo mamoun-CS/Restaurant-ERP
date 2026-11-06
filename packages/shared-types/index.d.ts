@@ -1,10 +1,12 @@
 export type ProductSummary = {
   id: string; sku: string; barcode: string | null; nameEn: string; nameAr: string;
-  priceMinor: number; currencyCode: string;
+  priceMinor: number; currencyCode: string; categoryId?: string; categoryNameEn?: string; categoryNameAr?: string; tags?: string[];
 };
 
 export type CheckoutInput = {
   idempotencyKey: string; deviceId: string; shiftId?: string; currencyCode: string;
+  orderType?: "DINE_IN" | "TAKEAWAY" | "PICKUP" | "DELIVERY";
+  customerName?: string; customerPhone?: string; customerAddress?: string; customerNotes?: string;
   discountMinor?: number; discountReason?: string; taxMinor?: number;
   couponCode?: string;
   supervisorAuthorization?: { username: string; pin: string };
@@ -29,8 +31,8 @@ export type BootstrapSnapshot = {
   branch: { id: string; code: string; name: string; nameAr: string; address: string | null } | null;
   register: { id: string; number: string; name: string } | null;
   serverTime: string; catalogVersion: number; catalogHash?: string;
-  categories: { id:string;cloudId:string;nameEn:string;nameAr:string;sortOrder:number;active:boolean;serverVersion:number }[];
-  products: { id:string;cloudId:string;sku:string;barcode:string|null;nameEn:string;nameAr:string;categoryId:string;priceMinor:number;currencyCode:string;active:boolean;serverVersion:number;sizes:unknown[];addons:unknown[] }[];
-  cashiers: { id:string;cloudId:string;username:string;displayName:string;credentialHash:string|null;credentialSalt:string|null;verifierKind:string;policyVersion:number;offlineExpiresAt:string;canDiscount:boolean;maxDiscountPercent:number;maxDiscountMinor:number;supervisor:boolean;offlinePolicyToken:string }[];
+  categories: { id:string;cloudId:string;nameEn:string;nameAr:string;sortOrder:number;active:boolean;serverVersion:number;tags?:string[] }[];
+  products: { id:string;cloudId:string;sku:string;barcode:string|null;nameEn:string;nameAr:string;categoryId:string;priceMinor:number;currencyCode:string;active:boolean;serverVersion:number;sizes:unknown[];addons:unknown[];tags?:string[] }[];
+  cashiers: { id:string;cloudId:string;username:string;displayName:string;accountType?:"ADMIN"|"CASHIER";credentialHash:string|null;credentialSalt:string|null;verifierKind:string;policyVersion:number;offlineExpiresAt:string|null;canDiscount:boolean;maxDiscountPercent:number;maxDiscountMinor:number;supervisor:boolean;offlinePolicyToken:string }[];
   coupons?: { code:string; type:"FIXED"|"PERCENTAGE"; value:number; startsAt:string; endsAt:string; active:boolean; maxUses:number|null; usedCount:number }[];
 };

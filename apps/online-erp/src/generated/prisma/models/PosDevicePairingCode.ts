@@ -216,7 +216,7 @@ export type PosDevicePairingCodeGroupByOutputType = {
   registerId: string | null
   deviceId: string | null
   createdById: string
-  expiresAt: Date
+  expiresAt: Date | null
   consumedAt: Date | null
   attempts: number
   createdAt: Date
@@ -252,7 +252,7 @@ export type PosDevicePairingCodeWhereInput = {
   registerId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   deviceId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   createdById?: Prisma.StringFilter<"PosDevicePairingCode"> | string
-  expiresAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
+  expiresAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   consumedAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   attempts?: Prisma.IntFilter<"PosDevicePairingCode"> | number
   createdAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
@@ -268,7 +268,7 @@ export type PosDevicePairingCodeOrderByWithRelationInput = {
   registerId?: Prisma.SortOrderInput | Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   consumedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   attempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -287,7 +287,7 @@ export type PosDevicePairingCodeWhereUniqueInput = Prisma.AtLeast<{
   registerId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   deviceId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   createdById?: Prisma.StringFilter<"PosDevicePairingCode"> | string
-  expiresAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
+  expiresAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   consumedAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   attempts?: Prisma.IntFilter<"PosDevicePairingCode"> | number
   createdAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
@@ -303,7 +303,7 @@ export type PosDevicePairingCodeOrderByWithAggregationInput = {
   registerId?: Prisma.SortOrderInput | Prisma.SortOrder
   deviceId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrder
-  expiresAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   consumedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   attempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -324,7 +324,7 @@ export type PosDevicePairingCodeScalarWhereWithAggregatesInput = {
   registerId?: Prisma.StringNullableWithAggregatesFilter<"PosDevicePairingCode"> | string | null
   deviceId?: Prisma.StringNullableWithAggregatesFilter<"PosDevicePairingCode"> | string | null
   createdById?: Prisma.StringWithAggregatesFilter<"PosDevicePairingCode"> | string
-  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"PosDevicePairingCode"> | Date | string
+  expiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PosDevicePairingCode"> | Date | string | null
   consumedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"PosDevicePairingCode"> | Date | string | null
   attempts?: Prisma.IntWithAggregatesFilter<"PosDevicePairingCode"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"PosDevicePairingCode"> | Date | string
@@ -334,7 +334,7 @@ export type PosDevicePairingCodeCreateInput = {
   id?: string
   codeHash: string
   registerId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -350,7 +350,7 @@ export type PosDevicePairingCodeUncheckedCreateInput = {
   registerId?: string | null
   deviceId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -360,7 +360,7 @@ export type PosDevicePairingCodeUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   codeHash?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -376,7 +376,7 @@ export type PosDevicePairingCodeUncheckedUpdateInput = {
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -389,7 +389,7 @@ export type PosDevicePairingCodeCreateManyInput = {
   registerId?: string | null
   deviceId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -399,7 +399,7 @@ export type PosDevicePairingCodeUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   codeHash?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -412,7 +412,7 @@ export type PosDevicePairingCodeUncheckedUpdateManyInput = {
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -605,7 +605,7 @@ export type PosDevicePairingCodeCreateWithoutBranchInput = {
   id?: string
   codeHash: string
   registerId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -619,7 +619,7 @@ export type PosDevicePairingCodeUncheckedCreateWithoutBranchInput = {
   registerId?: string | null
   deviceId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -661,7 +661,7 @@ export type PosDevicePairingCodeScalarWhereInput = {
   registerId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   deviceId?: Prisma.StringNullableFilter<"PosDevicePairingCode"> | string | null
   createdById?: Prisma.StringFilter<"PosDevicePairingCode"> | string
-  expiresAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
+  expiresAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   consumedAt?: Prisma.DateTimeNullableFilter<"PosDevicePairingCode"> | Date | string | null
   attempts?: Prisma.IntFilter<"PosDevicePairingCode"> | number
   createdAt?: Prisma.DateTimeFilter<"PosDevicePairingCode"> | Date | string
@@ -671,7 +671,7 @@ export type PosDevicePairingCodeCreateWithoutCreatedByInput = {
   id?: string
   codeHash: string
   registerId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -685,7 +685,7 @@ export type PosDevicePairingCodeUncheckedCreateWithoutCreatedByInput = {
   branchId: string
   registerId?: string | null
   deviceId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -721,7 +721,7 @@ export type PosDevicePairingCodeCreateWithoutDeviceInput = {
   id?: string
   codeHash: string
   registerId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -735,7 +735,7 @@ export type PosDevicePairingCodeUncheckedCreateWithoutDeviceInput = {
   branchId: string
   registerId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -773,7 +773,7 @@ export type PosDevicePairingCodeCreateManyBranchInput = {
   registerId?: string | null
   deviceId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -783,7 +783,7 @@ export type PosDevicePairingCodeUpdateWithoutBranchInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   codeHash?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -797,7 +797,7 @@ export type PosDevicePairingCodeUncheckedUpdateWithoutBranchInput = {
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -809,7 +809,7 @@ export type PosDevicePairingCodeUncheckedUpdateManyWithoutBranchInput = {
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -821,7 +821,7 @@ export type PosDevicePairingCodeCreateManyCreatedByInput = {
   branchId: string
   registerId?: string | null
   deviceId?: string | null
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -831,7 +831,7 @@ export type PosDevicePairingCodeUpdateWithoutCreatedByInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   codeHash?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -845,7 +845,7 @@ export type PosDevicePairingCodeUncheckedUpdateWithoutCreatedByInput = {
   branchId?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -857,7 +857,7 @@ export type PosDevicePairingCodeUncheckedUpdateManyWithoutCreatedByInput = {
   branchId?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -869,7 +869,7 @@ export type PosDevicePairingCodeCreateManyDeviceInput = {
   branchId: string
   registerId?: string | null
   createdById: string
-  expiresAt: Date | string
+  expiresAt?: Date | string | null
   consumedAt?: Date | string | null
   attempts?: number
   createdAt?: Date | string
@@ -879,7 +879,7 @@ export type PosDevicePairingCodeUpdateWithoutDeviceInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   codeHash?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -893,7 +893,7 @@ export type PosDevicePairingCodeUncheckedUpdateWithoutDeviceInput = {
   branchId?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -905,7 +905,7 @@ export type PosDevicePairingCodeUncheckedUpdateManyWithoutDeviceInput = {
   branchId?: Prisma.StringFieldUpdateOperationsInput | string
   registerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.StringFieldUpdateOperationsInput | string
-  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   attempts?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1005,7 +1005,7 @@ export type $PosDevicePairingCodePayload<ExtArgs extends runtime.Types.Extension
     registerId: string | null
     deviceId: string | null
     createdById: string
-    expiresAt: Date
+    expiresAt: Date | null
     consumedAt: Date | null
     attempts: number
     createdAt: Date

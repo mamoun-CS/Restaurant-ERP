@@ -45,6 +45,7 @@
       "dist/**",
       "dist-electron/**",
       "database/**",
+      "assets/brand-icon.ico",
       "package.json"
     ],
     "asarUnpack": ["**/*.node"],
@@ -68,6 +69,7 @@
       "output": "release"
     },
     "win": {
+      "icon": "assets/brand-icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -79,6 +81,8 @@
       "artifactName": "Restaurant-POS-Setup.${ext}"
     },
     "nsis": {
+      "installerIcon": "assets/brand-icon.ico",
+      "uninstallerIcon": "assets/brand-icon.ico",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,

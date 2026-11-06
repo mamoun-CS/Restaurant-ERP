@@ -12,6 +12,7 @@ const schema=z.object({
   nameAr:z.string().trim().min(2).optional(),
   descriptionEn:z.string().trim().optional(),
   descriptionAr:z.string().trim().optional(),
+  tags:z.array(z.string().trim().min(1).max(40)).max(5).optional(),
 });
 async function admin(){
   const token=await verifyToken((await cookies()).get("erp_session")?.value);

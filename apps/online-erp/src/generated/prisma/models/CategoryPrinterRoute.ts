@@ -27,6 +27,7 @@ export type AggregateCategoryPrinterRoute = {
 export type CategoryPrinterRouteMinAggregateOutputType = {
   id: string | null
   categoryId: string | null
+  branchId: string | null
   printerConfigurationId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -35,6 +36,7 @@ export type CategoryPrinterRouteMinAggregateOutputType = {
 export type CategoryPrinterRouteMaxAggregateOutputType = {
   id: string | null
   categoryId: string | null
+  branchId: string | null
   printerConfigurationId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -43,6 +45,7 @@ export type CategoryPrinterRouteMaxAggregateOutputType = {
 export type CategoryPrinterRouteCountAggregateOutputType = {
   id: number
   categoryId: number
+  branchId: number
   printerConfigurationId: number
   createdAt: number
   updatedAt: number
@@ -53,6 +56,7 @@ export type CategoryPrinterRouteCountAggregateOutputType = {
 export type CategoryPrinterRouteMinAggregateInputType = {
   id?: true
   categoryId?: true
+  branchId?: true
   printerConfigurationId?: true
   createdAt?: true
   updatedAt?: true
@@ -61,6 +65,7 @@ export type CategoryPrinterRouteMinAggregateInputType = {
 export type CategoryPrinterRouteMaxAggregateInputType = {
   id?: true
   categoryId?: true
+  branchId?: true
   printerConfigurationId?: true
   createdAt?: true
   updatedAt?: true
@@ -69,6 +74,7 @@ export type CategoryPrinterRouteMaxAggregateInputType = {
 export type CategoryPrinterRouteCountAggregateInputType = {
   id?: true
   categoryId?: true
+  branchId?: true
   printerConfigurationId?: true
   createdAt?: true
   updatedAt?: true
@@ -150,6 +156,7 @@ export type CategoryPrinterRouteGroupByArgs<ExtArgs extends runtime.Types.Extens
 export type CategoryPrinterRouteGroupByOutputType = {
   id: string
   categoryId: string
+  branchId: string | null
   printerConfigurationId: string
   createdAt: Date
   updatedAt: Date
@@ -179,39 +186,47 @@ export type CategoryPrinterRouteWhereInput = {
   NOT?: Prisma.CategoryPrinterRouteWhereInput | Prisma.CategoryPrinterRouteWhereInput[]
   id?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
   categoryId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
+  branchId?: Prisma.StringNullableFilter<"CategoryPrinterRoute"> | string | null
   printerConfigurationId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
   createdAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
+  branch?: Prisma.XOR<Prisma.BranchNullableScalarRelationFilter, Prisma.BranchWhereInput> | null
   printerConfiguration?: Prisma.XOR<Prisma.PrinterConfigurationScalarRelationFilter, Prisma.PrinterConfigurationWhereInput>
 }
 
 export type CategoryPrinterRouteOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  branchId?: Prisma.SortOrderInput | Prisma.SortOrder
   printerConfigurationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   category?: Prisma.CategoryOrderByWithRelationInput
+  branch?: Prisma.BranchOrderByWithRelationInput
   printerConfiguration?: Prisma.PrinterConfigurationOrderByWithRelationInput
 }
 
 export type CategoryPrinterRouteWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  categoryId?: string
+  categoryId_branchId?: Prisma.CategoryPrinterRouteCategoryIdBranchIdCompoundUniqueInput
   AND?: Prisma.CategoryPrinterRouteWhereInput | Prisma.CategoryPrinterRouteWhereInput[]
   OR?: Prisma.CategoryPrinterRouteWhereInput[]
   NOT?: Prisma.CategoryPrinterRouteWhereInput | Prisma.CategoryPrinterRouteWhereInput[]
+  categoryId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
+  branchId?: Prisma.StringNullableFilter<"CategoryPrinterRoute"> | string | null
   printerConfigurationId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
   createdAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
   category?: Prisma.XOR<Prisma.CategoryScalarRelationFilter, Prisma.CategoryWhereInput>
+  branch?: Prisma.XOR<Prisma.BranchNullableScalarRelationFilter, Prisma.BranchWhereInput> | null
   printerConfiguration?: Prisma.XOR<Prisma.PrinterConfigurationScalarRelationFilter, Prisma.PrinterConfigurationWhereInput>
-}, "id" | "categoryId">
+}, "id" | "categoryId_branchId">
 
 export type CategoryPrinterRouteOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  branchId?: Prisma.SortOrderInput | Prisma.SortOrder
   printerConfigurationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -226,6 +241,7 @@ export type CategoryPrinterRouteScalarWhereWithAggregatesInput = {
   NOT?: Prisma.CategoryPrinterRouteScalarWhereWithAggregatesInput | Prisma.CategoryPrinterRouteScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"CategoryPrinterRoute"> | string
   categoryId?: Prisma.StringWithAggregatesFilter<"CategoryPrinterRoute"> | string
+  branchId?: Prisma.StringNullableWithAggregatesFilter<"CategoryPrinterRoute"> | string | null
   printerConfigurationId?: Prisma.StringWithAggregatesFilter<"CategoryPrinterRoute"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CategoryPrinterRoute"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"CategoryPrinterRoute"> | Date | string
@@ -236,12 +252,14 @@ export type CategoryPrinterRouteCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutPrinterRoutesInput
+  branch?: Prisma.BranchCreateNestedOneWithoutCategoryPrinterRoutesInput
   printerConfiguration: Prisma.PrinterConfigurationCreateNestedOneWithoutCategoryRoutesInput
 }
 
 export type CategoryPrinterRouteUncheckedCreateInput = {
   id?: string
   categoryId: string
+  branchId?: string | null
   printerConfigurationId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -252,12 +270,14 @@ export type CategoryPrinterRouteUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutPrinterRoutesNestedInput
+  branch?: Prisma.BranchUpdateOneWithoutCategoryPrinterRoutesNestedInput
   printerConfiguration?: Prisma.PrinterConfigurationUpdateOneRequiredWithoutCategoryRoutesNestedInput
 }
 
 export type CategoryPrinterRouteUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -266,6 +286,7 @@ export type CategoryPrinterRouteUncheckedUpdateInput = {
 export type CategoryPrinterRouteCreateManyInput = {
   id?: string
   categoryId: string
+  branchId?: string | null
   printerConfigurationId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -280,6 +301,7 @@ export type CategoryPrinterRouteUpdateManyMutationInput = {
 export type CategoryPrinterRouteUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -295,9 +317,15 @@ export type CategoryPrinterRouteOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type CategoryPrinterRouteCategoryIdBranchIdCompoundUniqueInput = {
+  categoryId: string
+  branchId: string
+}
+
 export type CategoryPrinterRouteCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  branchId?: Prisma.SortOrder
   printerConfigurationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -306,6 +334,7 @@ export type CategoryPrinterRouteCountOrderByAggregateInput = {
 export type CategoryPrinterRouteMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  branchId?: Prisma.SortOrder
   printerConfigurationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -314,9 +343,52 @@ export type CategoryPrinterRouteMaxOrderByAggregateInput = {
 export type CategoryPrinterRouteMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  branchId?: Prisma.SortOrder
   printerConfigurationId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type CategoryPrinterRouteCreateNestedManyWithoutBranchInput = {
+  create?: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput> | Prisma.CategoryPrinterRouteCreateWithoutBranchInput[] | Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput[]
+  connectOrCreate?: Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput | Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput[]
+  createMany?: Prisma.CategoryPrinterRouteCreateManyBranchInputEnvelope
+  connect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+}
+
+export type CategoryPrinterRouteUncheckedCreateNestedManyWithoutBranchInput = {
+  create?: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput> | Prisma.CategoryPrinterRouteCreateWithoutBranchInput[] | Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput[]
+  connectOrCreate?: Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput | Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput[]
+  createMany?: Prisma.CategoryPrinterRouteCreateManyBranchInputEnvelope
+  connect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+}
+
+export type CategoryPrinterRouteUpdateManyWithoutBranchNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput> | Prisma.CategoryPrinterRouteCreateWithoutBranchInput[] | Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput[]
+  connectOrCreate?: Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput | Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput[]
+  upsert?: Prisma.CategoryPrinterRouteUpsertWithWhereUniqueWithoutBranchInput | Prisma.CategoryPrinterRouteUpsertWithWhereUniqueWithoutBranchInput[]
+  createMany?: Prisma.CategoryPrinterRouteCreateManyBranchInputEnvelope
+  set?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  disconnect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  delete?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  connect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  update?: Prisma.CategoryPrinterRouteUpdateWithWhereUniqueWithoutBranchInput | Prisma.CategoryPrinterRouteUpdateWithWhereUniqueWithoutBranchInput[]
+  updateMany?: Prisma.CategoryPrinterRouteUpdateManyWithWhereWithoutBranchInput | Prisma.CategoryPrinterRouteUpdateManyWithWhereWithoutBranchInput[]
+  deleteMany?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
+}
+
+export type CategoryPrinterRouteUncheckedUpdateManyWithoutBranchNestedInput = {
+  create?: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput> | Prisma.CategoryPrinterRouteCreateWithoutBranchInput[] | Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput[]
+  connectOrCreate?: Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput | Prisma.CategoryPrinterRouteCreateOrConnectWithoutBranchInput[]
+  upsert?: Prisma.CategoryPrinterRouteUpsertWithWhereUniqueWithoutBranchInput | Prisma.CategoryPrinterRouteUpsertWithWhereUniqueWithoutBranchInput[]
+  createMany?: Prisma.CategoryPrinterRouteCreateManyBranchInputEnvelope
+  set?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  disconnect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  delete?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  connect?: Prisma.CategoryPrinterRouteWhereUniqueInput | Prisma.CategoryPrinterRouteWhereUniqueInput[]
+  update?: Prisma.CategoryPrinterRouteUpdateWithWhereUniqueWithoutBranchInput | Prisma.CategoryPrinterRouteUpdateWithWhereUniqueWithoutBranchInput[]
+  updateMany?: Prisma.CategoryPrinterRouteUpdateManyWithWhereWithoutBranchInput | Prisma.CategoryPrinterRouteUpdateManyWithWhereWithoutBranchInput[]
+  deleteMany?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
 }
 
 export type CategoryPrinterRouteCreateNestedManyWithoutCategoryInput = {
@@ -403,15 +475,71 @@ export type CategoryPrinterRouteUncheckedUpdateManyWithoutPrinterConfigurationNe
   deleteMany?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
 }
 
+export type CategoryPrinterRouteCreateWithoutBranchInput = {
+  id?: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  category: Prisma.CategoryCreateNestedOneWithoutPrinterRoutesInput
+  printerConfiguration: Prisma.PrinterConfigurationCreateNestedOneWithoutCategoryRoutesInput
+}
+
+export type CategoryPrinterRouteUncheckedCreateWithoutBranchInput = {
+  id?: string
+  categoryId: string
+  printerConfigurationId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type CategoryPrinterRouteCreateOrConnectWithoutBranchInput = {
+  where: Prisma.CategoryPrinterRouteWhereUniqueInput
+  create: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput>
+}
+
+export type CategoryPrinterRouteCreateManyBranchInputEnvelope = {
+  data: Prisma.CategoryPrinterRouteCreateManyBranchInput | Prisma.CategoryPrinterRouteCreateManyBranchInput[]
+  skipDuplicates?: boolean
+}
+
+export type CategoryPrinterRouteUpsertWithWhereUniqueWithoutBranchInput = {
+  where: Prisma.CategoryPrinterRouteWhereUniqueInput
+  update: Prisma.XOR<Prisma.CategoryPrinterRouteUpdateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedUpdateWithoutBranchInput>
+  create: Prisma.XOR<Prisma.CategoryPrinterRouteCreateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedCreateWithoutBranchInput>
+}
+
+export type CategoryPrinterRouteUpdateWithWhereUniqueWithoutBranchInput = {
+  where: Prisma.CategoryPrinterRouteWhereUniqueInput
+  data: Prisma.XOR<Prisma.CategoryPrinterRouteUpdateWithoutBranchInput, Prisma.CategoryPrinterRouteUncheckedUpdateWithoutBranchInput>
+}
+
+export type CategoryPrinterRouteUpdateManyWithWhereWithoutBranchInput = {
+  where: Prisma.CategoryPrinterRouteScalarWhereInput
+  data: Prisma.XOR<Prisma.CategoryPrinterRouteUpdateManyMutationInput, Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutBranchInput>
+}
+
+export type CategoryPrinterRouteScalarWhereInput = {
+  AND?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
+  OR?: Prisma.CategoryPrinterRouteScalarWhereInput[]
+  NOT?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
+  id?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
+  categoryId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
+  branchId?: Prisma.StringNullableFilter<"CategoryPrinterRoute"> | string | null
+  printerConfigurationId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
+  createdAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
+}
+
 export type CategoryPrinterRouteCreateWithoutCategoryInput = {
   id?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  branch?: Prisma.BranchCreateNestedOneWithoutCategoryPrinterRoutesInput
   printerConfiguration: Prisma.PrinterConfigurationCreateNestedOneWithoutCategoryRoutesInput
 }
 
 export type CategoryPrinterRouteUncheckedCreateWithoutCategoryInput = {
   id?: string
+  branchId?: string | null
   printerConfigurationId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -443,27 +571,18 @@ export type CategoryPrinterRouteUpdateManyWithWhereWithoutCategoryInput = {
   data: Prisma.XOR<Prisma.CategoryPrinterRouteUpdateManyMutationInput, Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutCategoryInput>
 }
 
-export type CategoryPrinterRouteScalarWhereInput = {
-  AND?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
-  OR?: Prisma.CategoryPrinterRouteScalarWhereInput[]
-  NOT?: Prisma.CategoryPrinterRouteScalarWhereInput | Prisma.CategoryPrinterRouteScalarWhereInput[]
-  id?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
-  categoryId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
-  printerConfigurationId?: Prisma.StringFilter<"CategoryPrinterRoute"> | string
-  createdAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<"CategoryPrinterRoute"> | Date | string
-}
-
 export type CategoryPrinterRouteCreateWithoutPrinterConfigurationInput = {
   id?: string
   createdAt?: Date | string
   updatedAt?: Date | string
   category: Prisma.CategoryCreateNestedOneWithoutPrinterRoutesInput
+  branch?: Prisma.BranchCreateNestedOneWithoutCategoryPrinterRoutesInput
 }
 
 export type CategoryPrinterRouteUncheckedCreateWithoutPrinterConfigurationInput = {
   id?: string
   categoryId: string
+  branchId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -494,8 +613,41 @@ export type CategoryPrinterRouteUpdateManyWithWhereWithoutPrinterConfigurationIn
   data: Prisma.XOR<Prisma.CategoryPrinterRouteUpdateManyMutationInput, Prisma.CategoryPrinterRouteUncheckedUpdateManyWithoutPrinterConfigurationInput>
 }
 
+export type CategoryPrinterRouteCreateManyBranchInput = {
+  id?: string
+  categoryId: string
+  printerConfigurationId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type CategoryPrinterRouteUpdateWithoutBranchInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  category?: Prisma.CategoryUpdateOneRequiredWithoutPrinterRoutesNestedInput
+  printerConfiguration?: Prisma.PrinterConfigurationUpdateOneRequiredWithoutCategoryRoutesNestedInput
+}
+
+export type CategoryPrinterRouteUncheckedUpdateWithoutBranchInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type CategoryPrinterRouteUncheckedUpdateManyWithoutBranchInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type CategoryPrinterRouteCreateManyCategoryInput = {
   id?: string
+  branchId?: string | null
   printerConfigurationId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -505,11 +657,13 @@ export type CategoryPrinterRouteUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  branch?: Prisma.BranchUpdateOneWithoutCategoryPrinterRoutesNestedInput
   printerConfiguration?: Prisma.PrinterConfigurationUpdateOneRequiredWithoutCategoryRoutesNestedInput
 }
 
 export type CategoryPrinterRouteUncheckedUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -517,6 +671,7 @@ export type CategoryPrinterRouteUncheckedUpdateWithoutCategoryInput = {
 
 export type CategoryPrinterRouteUncheckedUpdateManyWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   printerConfigurationId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -525,6 +680,7 @@ export type CategoryPrinterRouteUncheckedUpdateManyWithoutCategoryInput = {
 export type CategoryPrinterRouteCreateManyPrinterConfigurationInput = {
   id?: string
   categoryId: string
+  branchId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -534,11 +690,13 @@ export type CategoryPrinterRouteUpdateWithoutPrinterConfigurationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.CategoryUpdateOneRequiredWithoutPrinterRoutesNestedInput
+  branch?: Prisma.BranchUpdateOneWithoutCategoryPrinterRoutesNestedInput
 }
 
 export type CategoryPrinterRouteUncheckedUpdateWithoutPrinterConfigurationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -546,6 +704,7 @@ export type CategoryPrinterRouteUncheckedUpdateWithoutPrinterConfigurationInput 
 export type CategoryPrinterRouteUncheckedUpdateManyWithoutPrinterConfigurationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  branchId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -555,52 +714,62 @@ export type CategoryPrinterRouteUncheckedUpdateManyWithoutPrinterConfigurationIn
 export type CategoryPrinterRouteSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   categoryId?: boolean
+  branchId?: boolean
   printerConfigurationId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["categoryPrinterRoute"]>
 
 export type CategoryPrinterRouteSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   categoryId?: boolean
+  branchId?: boolean
   printerConfigurationId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["categoryPrinterRoute"]>
 
 export type CategoryPrinterRouteSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   categoryId?: boolean
+  branchId?: boolean
   printerConfigurationId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["categoryPrinterRoute"]>
 
 export type CategoryPrinterRouteSelectScalar = {
   id?: boolean
   categoryId?: boolean
+  branchId?: boolean
   printerConfigurationId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CategoryPrinterRouteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "categoryId" | "printerConfigurationId" | "createdAt" | "updatedAt", ExtArgs["result"]["categoryPrinterRoute"]>
+export type CategoryPrinterRouteOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "categoryId" | "branchId" | "printerConfigurationId" | "createdAt" | "updatedAt", ExtArgs["result"]["categoryPrinterRoute"]>
 export type CategoryPrinterRouteInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }
 export type CategoryPrinterRouteIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }
 export type CategoryPrinterRouteIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.CategoryDefaultArgs<ExtArgs>
+  branch?: boolean | Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>
   printerConfiguration?: boolean | Prisma.PrinterConfigurationDefaultArgs<ExtArgs>
 }
 
@@ -608,11 +777,13 @@ export type $CategoryPrinterRoutePayload<ExtArgs extends runtime.Types.Extension
   name: "CategoryPrinterRoute"
   objects: {
     category: Prisma.$CategoryPayload<ExtArgs>
+    branch: Prisma.$BranchPayload<ExtArgs> | null
     printerConfiguration: Prisma.$PrinterConfigurationPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     categoryId: string
+    branchId: string | null
     printerConfigurationId: string
     createdAt: Date
     updatedAt: Date
@@ -1011,6 +1182,7 @@ readonly fields: CategoryPrinterRouteFieldRefs;
 export interface Prisma__CategoryPrinterRouteClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   category<T extends Prisma.CategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__CategoryClient<runtime.Types.Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  branch<T extends Prisma.CategoryPrinterRoute$branchArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CategoryPrinterRoute$branchArgs<ExtArgs>>): Prisma.Prisma__BranchClient<runtime.Types.Result.GetResult<Prisma.$BranchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   printerConfiguration<T extends Prisma.PrinterConfigurationDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PrinterConfigurationDefaultArgs<ExtArgs>>): Prisma.Prisma__PrinterConfigurationClient<runtime.Types.Result.GetResult<Prisma.$PrinterConfigurationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1043,6 +1215,7 @@ export interface Prisma__CategoryPrinterRouteClient<T, Null = never, ExtArgs ext
 export interface CategoryPrinterRouteFieldRefs {
   readonly id: Prisma.FieldRef<"CategoryPrinterRoute", 'String'>
   readonly categoryId: Prisma.FieldRef<"CategoryPrinterRoute", 'String'>
+  readonly branchId: Prisma.FieldRef<"CategoryPrinterRoute", 'String'>
   readonly printerConfigurationId: Prisma.FieldRef<"CategoryPrinterRoute", 'String'>
   readonly createdAt: Prisma.FieldRef<"CategoryPrinterRoute", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"CategoryPrinterRoute", 'DateTime'>
@@ -1444,6 +1617,25 @@ export type CategoryPrinterRouteDeleteManyArgs<ExtArgs extends runtime.Types.Ext
    * Limit how many CategoryPrinterRoutes to delete.
    */
   limit?: number
+}
+
+/**
+ * CategoryPrinterRoute.branch
+ */
+export type CategoryPrinterRoute$branchArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Branch
+   */
+  select?: Prisma.BranchSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Branch
+   */
+  omit?: Prisma.BranchOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BranchInclude<ExtArgs> | null
+  where?: Prisma.BranchWhereInput
 }
 
 /**

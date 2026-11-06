@@ -81,7 +81,7 @@ export async function POST(request: Request) {
           createdAt, number: official, officialNumber: official, idempotencyKey: order.idempotencyKey, clientTransactionId: order.id,
           subtotal: money(order.subtotalMinor), discountAmount: money(order.discountMinor), taxAmount: money(order.taxMinor),
           totalAmount: money(order.totalMinor), grandTotal: money(order.totalMinor), paymentMethod: "CASH", cashierId: order.cashierId,
-          branchId: device.branchId, status: "PAID", orderType: "PICKUP", ...(couponCampaign?{discountId:couponCampaign.id}:{}),
+          branchId: device.branchId, status: "PAID", orderType: order.orderType, customerName:order.customerName, customerPhone:order.customerPhone, customerAddress:order.customerAddress, customerNotes:order.customerNotes, ...(couponCampaign?{discountId:couponCampaign.id}:{}),
           items: { create: order.items.map((item) => {
             const product = productById.get(item.productId)!;
             const unitPrice = money(item.unitPriceMinor);
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
           await tx.inventoryMovement.create({ data: { productId: item.productId, branchId: device.branchId, quantity: -item.quantity, unit: "unit", movementType: "SALE", referenceType: "Invoice", referenceId: created.id, createdById: order.cashierId, createdAt } });
         }
         if (order.items.some((item) => productById.get(item.productId)?.requiresPreparation)) {
-          await tx.kitchenOrder.create({ data: { orderNumber: `KO-${randomUUID().slice(0, 8).toUpperCase()}`, invoiceId: created.id, branchId: device.branchId, cashierName: cashierAssignment.user.name, orderType: "PICKUP", items: order.items.map((item) => ({ productName: item.productName, quantity: item.quantity, options: item.options })) as Prisma.InputJsonValue } });
+          await tx.kitchenOrder.create({ data: { orderNumber: `KO-${randomUUID().slice(0, 8).toUpperCase()}`, invoiceId: created.id, branchId: device.branchId, cashierName: cashierAssignment.user.name, orderType: order.orderType, notes:order.customerNotes, items: order.items.map((item) => ({ productName: item.productName, quantity: item.quantity, options: item.options })) as Prisma.InputJsonValue } });
         }
         await tx.auditLog.create({ data: { userId: order.cashierId, branchId: device.branchId, action: "OFFLINE_INVOICE_SYNCED", entityType: "Invoice", entityId: created.id, metadata: { deviceId: device.id, clientTransactionId: order.id, discountMinor: order.discountMinor, couponCode:order.couponCode??null, discountReason: order.discountReason ?? null, supervisorId: supervisorPolicy ? order.supervisorId : null, policyVersion: cashierPolicy.policyVersion } } });
         return { id: created.id, number: created.number };

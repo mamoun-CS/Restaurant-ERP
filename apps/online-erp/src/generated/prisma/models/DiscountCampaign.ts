@@ -28,10 +28,14 @@ export type AggregateDiscountCampaign = {
 
 export type DiscountCampaignAvgAggregateOutputType = {
   value: runtime.Decimal | null
+  maxUses: number | null
+  usedCount: number | null
 }
 
 export type DiscountCampaignSumAggregateOutputType = {
   value: runtime.Decimal | null
+  maxUses: number | null
+  usedCount: number | null
 }
 
 export type DiscountCampaignMinAggregateOutputType = {
@@ -43,6 +47,9 @@ export type DiscountCampaignMinAggregateOutputType = {
   startsAt: Date | null
   endsAt: Date | null
   active: boolean | null
+  couponCode: string | null
+  maxUses: number | null
+  usedCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,6 +63,9 @@ export type DiscountCampaignMaxAggregateOutputType = {
   startsAt: Date | null
   endsAt: Date | null
   active: boolean | null
+  couponCode: string | null
+  maxUses: number | null
+  usedCount: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -69,6 +79,9 @@ export type DiscountCampaignCountAggregateOutputType = {
   startsAt: number
   endsAt: number
   active: number
+  couponCode: number
+  maxUses: number
+  usedCount: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -77,10 +90,14 @@ export type DiscountCampaignCountAggregateOutputType = {
 
 export type DiscountCampaignAvgAggregateInputType = {
   value?: true
+  maxUses?: true
+  usedCount?: true
 }
 
 export type DiscountCampaignSumAggregateInputType = {
   value?: true
+  maxUses?: true
+  usedCount?: true
 }
 
 export type DiscountCampaignMinAggregateInputType = {
@@ -92,6 +109,9 @@ export type DiscountCampaignMinAggregateInputType = {
   startsAt?: true
   endsAt?: true
   active?: true
+  couponCode?: true
+  maxUses?: true
+  usedCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -105,6 +125,9 @@ export type DiscountCampaignMaxAggregateInputType = {
   startsAt?: true
   endsAt?: true
   active?: true
+  couponCode?: true
+  maxUses?: true
+  usedCount?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -118,6 +141,9 @@ export type DiscountCampaignCountAggregateInputType = {
   startsAt?: true
   endsAt?: true
   active?: true
+  couponCode?: true
+  maxUses?: true
+  usedCount?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -218,6 +244,9 @@ export type DiscountCampaignGroupByOutputType = {
   startsAt: Date
   endsAt: Date
   active: boolean
+  couponCode: string | null
+  maxUses: number | null
+  usedCount: number
   createdAt: Date
   updatedAt: Date
   _count: DiscountCampaignCountAggregateOutputType | null
@@ -254,6 +283,9 @@ export type DiscountCampaignWhereInput = {
   startsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   endsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   active?: Prisma.BoolFilter<"DiscountCampaign"> | boolean
+  couponCode?: Prisma.StringNullableFilter<"DiscountCampaign"> | string | null
+  maxUses?: Prisma.IntNullableFilter<"DiscountCampaign"> | number | null
+  usedCount?: Prisma.IntFilter<"DiscountCampaign"> | number
   createdAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   products?: Prisma.ProductListRelationFilter
@@ -270,6 +302,9 @@ export type DiscountCampaignOrderByWithRelationInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   active?: Prisma.SortOrder
+  couponCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxUses?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   products?: Prisma.ProductOrderByRelationAggregateInput
@@ -279,6 +314,7 @@ export type DiscountCampaignOrderByWithRelationInput = {
 
 export type DiscountCampaignWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  couponCode?: string
   AND?: Prisma.DiscountCampaignWhereInput | Prisma.DiscountCampaignWhereInput[]
   OR?: Prisma.DiscountCampaignWhereInput[]
   NOT?: Prisma.DiscountCampaignWhereInput | Prisma.DiscountCampaignWhereInput[]
@@ -289,12 +325,14 @@ export type DiscountCampaignWhereUniqueInput = Prisma.AtLeast<{
   startsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   endsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   active?: Prisma.BoolFilter<"DiscountCampaign"> | boolean
+  maxUses?: Prisma.IntNullableFilter<"DiscountCampaign"> | number | null
+  usedCount?: Prisma.IntFilter<"DiscountCampaign"> | number
   createdAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   products?: Prisma.ProductListRelationFilter
   categories?: Prisma.CategoryListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
-}, "id">
+}, "id" | "couponCode">
 
 export type DiscountCampaignOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -305,6 +343,9 @@ export type DiscountCampaignOrderByWithAggregationInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   active?: Prisma.SortOrder
+  couponCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  maxUses?: Prisma.SortOrderInput | Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.DiscountCampaignCountOrderByAggregateInput
@@ -326,6 +367,9 @@ export type DiscountCampaignScalarWhereWithAggregatesInput = {
   startsAt?: Prisma.DateTimeWithAggregatesFilter<"DiscountCampaign"> | Date | string
   endsAt?: Prisma.DateTimeWithAggregatesFilter<"DiscountCampaign"> | Date | string
   active?: Prisma.BoolWithAggregatesFilter<"DiscountCampaign"> | boolean
+  couponCode?: Prisma.StringNullableWithAggregatesFilter<"DiscountCampaign"> | string | null
+  maxUses?: Prisma.IntNullableWithAggregatesFilter<"DiscountCampaign"> | number | null
+  usedCount?: Prisma.IntWithAggregatesFilter<"DiscountCampaign"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"DiscountCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"DiscountCampaign"> | Date | string
 }
@@ -339,6 +383,9 @@ export type DiscountCampaignCreateInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductCreateNestedManyWithoutDiscountsInput
@@ -355,6 +402,9 @@ export type DiscountCampaignUncheckedCreateInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductUncheckedCreateNestedManyWithoutDiscountsInput
@@ -371,6 +421,9 @@ export type DiscountCampaignUpdateInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUpdateManyWithoutDiscountsNestedInput
@@ -387,6 +440,9 @@ export type DiscountCampaignUncheckedUpdateInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUncheckedUpdateManyWithoutDiscountsNestedInput
@@ -403,6 +459,9 @@ export type DiscountCampaignCreateManyInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -416,6 +475,9 @@ export type DiscountCampaignUpdateManyMutationInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -429,6 +491,9 @@ export type DiscountCampaignUncheckedUpdateManyInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -452,12 +517,17 @@ export type DiscountCampaignCountOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   active?: Prisma.SortOrder
+  couponCode?: Prisma.SortOrder
+  maxUses?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type DiscountCampaignAvgOrderByAggregateInput = {
   value?: Prisma.SortOrder
+  maxUses?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
 }
 
 export type DiscountCampaignMaxOrderByAggregateInput = {
@@ -469,6 +539,9 @@ export type DiscountCampaignMaxOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   active?: Prisma.SortOrder
+  couponCode?: Prisma.SortOrder
+  maxUses?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -482,12 +555,17 @@ export type DiscountCampaignMinOrderByAggregateInput = {
   startsAt?: Prisma.SortOrder
   endsAt?: Prisma.SortOrder
   active?: Prisma.SortOrder
+  couponCode?: Prisma.SortOrder
+  maxUses?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type DiscountCampaignSumOrderByAggregateInput = {
   value?: Prisma.SortOrder
+  maxUses?: Prisma.SortOrder
+  usedCount?: Prisma.SortOrder
 }
 
 export type DiscountCampaignNullableScalarRelationFilter = {
@@ -575,6 +653,14 @@ export type EnumDiscountTypeFieldUpdateOperationsInput = {
   set?: $Enums.DiscountType
 }
 
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type DiscountCampaignCreateNestedOneWithoutInvoicesInput = {
   create?: Prisma.XOR<Prisma.DiscountCampaignCreateWithoutInvoicesInput, Prisma.DiscountCampaignUncheckedCreateWithoutInvoicesInput>
   connectOrCreate?: Prisma.DiscountCampaignCreateOrConnectWithoutInvoicesInput
@@ -600,6 +686,9 @@ export type DiscountCampaignCreateWithoutCategoriesInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductCreateNestedManyWithoutDiscountsInput
@@ -615,6 +704,9 @@ export type DiscountCampaignUncheckedCreateWithoutCategoriesInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductUncheckedCreateNestedManyWithoutDiscountsInput
@@ -654,6 +746,9 @@ export type DiscountCampaignScalarWhereInput = {
   startsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   endsAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   active?: Prisma.BoolFilter<"DiscountCampaign"> | boolean
+  couponCode?: Prisma.StringNullableFilter<"DiscountCampaign"> | string | null
+  maxUses?: Prisma.IntNullableFilter<"DiscountCampaign"> | number | null
+  usedCount?: Prisma.IntFilter<"DiscountCampaign"> | number
   createdAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DiscountCampaign"> | Date | string
 }
@@ -667,6 +762,9 @@ export type DiscountCampaignCreateWithoutProductsInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   categories?: Prisma.CategoryCreateNestedManyWithoutDiscountsInput
@@ -682,6 +780,9 @@ export type DiscountCampaignUncheckedCreateWithoutProductsInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   categories?: Prisma.CategoryUncheckedCreateNestedManyWithoutDiscountsInput
@@ -718,6 +819,9 @@ export type DiscountCampaignCreateWithoutInvoicesInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductCreateNestedManyWithoutDiscountsInput
@@ -733,6 +837,9 @@ export type DiscountCampaignUncheckedCreateWithoutInvoicesInput = {
   startsAt: Date | string
   endsAt: Date | string
   active?: boolean
+  couponCode?: string | null
+  maxUses?: number | null
+  usedCount?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   products?: Prisma.ProductUncheckedCreateNestedManyWithoutDiscountsInput
@@ -764,6 +871,9 @@ export type DiscountCampaignUpdateWithoutInvoicesInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUpdateManyWithoutDiscountsNestedInput
@@ -779,6 +889,9 @@ export type DiscountCampaignUncheckedUpdateWithoutInvoicesInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUncheckedUpdateManyWithoutDiscountsNestedInput
@@ -794,6 +907,9 @@ export type DiscountCampaignUpdateWithoutCategoriesInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUpdateManyWithoutDiscountsNestedInput
@@ -809,6 +925,9 @@ export type DiscountCampaignUncheckedUpdateWithoutCategoriesInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   products?: Prisma.ProductUncheckedUpdateManyWithoutDiscountsNestedInput
@@ -824,6 +943,9 @@ export type DiscountCampaignUncheckedUpdateManyWithoutCategoriesInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -837,6 +959,9 @@ export type DiscountCampaignUpdateWithoutProductsInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   categories?: Prisma.CategoryUpdateManyWithoutDiscountsNestedInput
@@ -852,6 +977,9 @@ export type DiscountCampaignUncheckedUpdateWithoutProductsInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   categories?: Prisma.CategoryUncheckedUpdateManyWithoutDiscountsNestedInput
@@ -867,6 +995,9 @@ export type DiscountCampaignUncheckedUpdateManyWithoutProductsInput = {
   startsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   endsAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   active?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  couponCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  maxUses?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  usedCount?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -929,6 +1060,9 @@ export type DiscountCampaignSelect<ExtArgs extends runtime.Types.Extensions.Inte
   startsAt?: boolean
   endsAt?: boolean
   active?: boolean
+  couponCode?: boolean
+  maxUses?: boolean
+  usedCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   products?: boolean | Prisma.DiscountCampaign$productsArgs<ExtArgs>
@@ -946,6 +1080,9 @@ export type DiscountCampaignSelectCreateManyAndReturn<ExtArgs extends runtime.Ty
   startsAt?: boolean
   endsAt?: boolean
   active?: boolean
+  couponCode?: boolean
+  maxUses?: boolean
+  usedCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["discountCampaign"]>
@@ -959,6 +1096,9 @@ export type DiscountCampaignSelectUpdateManyAndReturn<ExtArgs extends runtime.Ty
   startsAt?: boolean
   endsAt?: boolean
   active?: boolean
+  couponCode?: boolean
+  maxUses?: boolean
+  usedCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["discountCampaign"]>
@@ -972,11 +1112,14 @@ export type DiscountCampaignSelectScalar = {
   startsAt?: boolean
   endsAt?: boolean
   active?: boolean
+  couponCode?: boolean
+  maxUses?: boolean
+  usedCount?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type DiscountCampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nameEn" | "nameAr" | "type" | "value" | "startsAt" | "endsAt" | "active" | "createdAt" | "updatedAt", ExtArgs["result"]["discountCampaign"]>
+export type DiscountCampaignOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "nameEn" | "nameAr" | "type" | "value" | "startsAt" | "endsAt" | "active" | "couponCode" | "maxUses" | "usedCount" | "createdAt" | "updatedAt", ExtArgs["result"]["discountCampaign"]>
 export type DiscountCampaignInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   products?: boolean | Prisma.DiscountCampaign$productsArgs<ExtArgs>
   categories?: boolean | Prisma.DiscountCampaign$categoriesArgs<ExtArgs>
@@ -1002,6 +1145,9 @@ export type $DiscountCampaignPayload<ExtArgs extends runtime.Types.Extensions.In
     startsAt: Date
     endsAt: Date
     active: boolean
+    couponCode: string | null
+    maxUses: number | null
+    usedCount: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["discountCampaign"]>
@@ -1438,6 +1584,9 @@ export interface DiscountCampaignFieldRefs {
   readonly startsAt: Prisma.FieldRef<"DiscountCampaign", 'DateTime'>
   readonly endsAt: Prisma.FieldRef<"DiscountCampaign", 'DateTime'>
   readonly active: Prisma.FieldRef<"DiscountCampaign", 'Boolean'>
+  readonly couponCode: Prisma.FieldRef<"DiscountCampaign", 'String'>
+  readonly maxUses: Prisma.FieldRef<"DiscountCampaign", 'Int'>
+  readonly usedCount: Prisma.FieldRef<"DiscountCampaign", 'Int'>
   readonly createdAt: Prisma.FieldRef<"DiscountCampaign", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"DiscountCampaign", 'DateTime'>
 }

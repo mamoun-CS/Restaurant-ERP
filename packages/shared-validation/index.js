@@ -6,6 +6,8 @@ const { z } = require("zod");
 const optionSchema = z.object({ name: z.string().min(1).max(100), priceMinor: z.number().int().nonnegative() });
 const offlineSaleSchema = z.object({
   id: z.string().uuid(), idempotencyKey: z.string().uuid(), cashierId: z.string().min(1), createdAt: z.string().datetime(),
+  orderType: z.enum(["DINE_IN", "TAKEAWAY", "PICKUP", "DELIVERY"]).default("PICKUP"),
+  customerName: z.string().max(120).optional(), customerPhone: z.string().max(40).optional(), customerAddress:z.string().max(300).optional(), customerNotes: z.string().max(1000).optional(),
   currencyCode: z.literal("ILS"), subtotalMinor: z.number().int().nonnegative(), discountMinor: z.number().int().nonnegative(),
   taxMinor: z.number().int().nonnegative(), totalMinor: z.number().int().nonnegative(),
   discountReason: z.string().max(250).optional(), couponCode: z.string().min(3).max(40).optional(), cashierPolicyToken: z.string().min(20).max(4096),

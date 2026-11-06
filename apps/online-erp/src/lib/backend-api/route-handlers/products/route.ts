@@ -4,7 +4,7 @@ import { z } from "zod";
 import { verifyToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-const productSchema=z.object({sku:z.string().min(2),price:z.number().positive(),categoryId:z.string().min(1),nameEn:z.string().min(2),nameAr:z.string().min(2),descriptionEn:z.string().optional(),descriptionAr:z.string().optional()});
+const productSchema=z.object({sku:z.string().min(2),price:z.number().positive(),categoryId:z.string().min(1),nameEn:z.string().min(2),nameAr:z.string().min(2),descriptionEn:z.string().optional(),descriptionAr:z.string().optional(),tags:z.array(z.string().trim().min(1).max(40)).max(5).optional()});
 async function session(){
   const token=await verifyToken((await cookies()).get("erp_session")?.value);
   if(!token)return null;

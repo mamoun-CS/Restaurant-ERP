@@ -868,14 +868,6 @@ export type EnumPrinterConnectionTypeFieldUpdateOperationsInput = {
   set?: $Enums.PrinterConnectionType
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type EnumPaperWidthFieldUpdateOperationsInput = {
   set?: $Enums.PaperWidth
 }
