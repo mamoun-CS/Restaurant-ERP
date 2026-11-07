@@ -23,9 +23,9 @@
     "test": "node test/printing-cash-drawer.test.js && tsx test/printing-validation.test.js && tsx test/printing-connection-validation.test.ts && tsx test/paper-width-resolution.test.ts && tsx test/lan-transport-mock.test.ts && tsx test/job-idempotency-queue.test.ts && tsx test/readiness-checks.test.ts && tsx test/offline-sales-sync.test.ts"
   },
   "dependencies": {
-    "@restaurant/shared-business-logic": "file:../../packages/shared-business-logic",
-    "@restaurant/shared-types": "file:../../packages/shared-types",
-    "@restaurant/shared-validation": "file:../../packages/shared-validation",
+    "@restaurant/shared-business-logic": "*",
+    "@restaurant/shared-types": "*",
+    "@restaurant/shared-validation": "*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",

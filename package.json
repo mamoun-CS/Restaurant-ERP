@@ -2,6 +2,10 @@
   "name": "restaurant-cloud-apps",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/online-erp",
+    "packages/*"
+  ],
   "scripts": {
     "erp:dev": "npm run dev --prefix apps/online-erp",
     "erp:build": "npm run build --prefix apps/online-erp",

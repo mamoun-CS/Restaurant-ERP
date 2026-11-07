@@ -4,5 +4,5 @@
   "private": true,
   "main": "index.js",
   "types": "index.d.ts",
-  "dependencies": { "@restaurant/shared-types": "file:../shared-types", "zod": "^4.4.3" }
+  "dependencies": { "@restaurant/shared-types": "*", "zod": "^4.4.3" }
 }
