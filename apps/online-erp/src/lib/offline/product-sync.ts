@@ -124,6 +124,8 @@ export async function syncAppMetadata(): Promise<void> {
 }
 
 function formatFallbackProduct(p: (typeof fallbackProducts)[number]): LocalProduct {
+  const candidateTags = (p as unknown as { tags?: unknown }).tags;
+
   return {
     id: p.id,
     nameEn: p.nameEn,
@@ -133,7 +135,9 @@ function formatFallbackProduct(p: (typeof fallbackProducts)[number]): LocalProdu
     price: Number(p.price),
     category: p.category,
     categoryAr: p.categoryAr,
-    tags: Array.isArray((p as { tags?: unknown }).tags) ? (p as { tags: string[] }).tags : [],
+    tags: Array.isArray(candidateTags)
+      ? candidateTags.filter((tag): tag is string => typeof tag === "string")
+      : [],
     emoji: p.emoji,
     color: p.color,
     active: p.active !== false,
